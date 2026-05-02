@@ -1,0 +1,71 @@
+# .gitignore — Hawkward Hybrid PowerShell Profile
+
+# ─────────────────────────────────────────────
+# AUTO-GENERATED REPORTS (contain live system data — never commit)
+# ─────────────────────────────────────────────
+Reports/
+
+# ─────────────────────────────────────────────
+# POWERSHELL MODULE HELP CACHE
+# The Help/ directory contains cached help files pulled from the system.
+# These are machine-specific, large, and fully regenerable.
+# ─────────────────────────────────────────────
+Help/
+
+# ─────────────────────────────────────────────
+# INSTALLED SCRIPT METADATA (PSResourceGet artefacts)
+# ─────────────────────────────────────────────
+Scripts/InstalledScriptInfos/
+
+# ─────────────────────────────────────────────
+# THIRD-PARTY / VENDORED MODULES
+# These are installed from the PowerShell Gallery, not owned by this project.
+# Users install them via Install-HawkPrerequisites.
+# ─────────────────────────────────────────────
+Modules/Terminal-Icons/
+Modules/PSReadLine/
+Modules/PSTree/
+Modules/PowerTree/
+Modules/ZLocation/
+Modules/PSAI/
+Modules/ollama-powershell/
+
+# ─────────────────────────────────────────────
+# WINDOWS SYSTEM MODULE CACHE
+# Anything that looks like a Windows inbox module path.
+# ─────────────────────────────────────────────
+Help/**/*.xml
+Help/**/*.zip
+
+# ─────────────────────────────────────────────
+# BACKUP / LEGACY FILES
+# ─────────────────────────────────────────────
+*.backup.ps1
+*.bak
+*.old
+
+# ─────────────────────────────────────────────
+# SECRETS & CREDENTIALS
+# Extra safety net — none should be in this repo, but guard anyway.
+# ─────────────────────────────────────────────
+*.key
+*.pem
+*.pfx
+*.crt
+*.p12
+.env
+.env.*
+secrets.*
+credentials.*
+
+# ─────────────────────────────────────────────
+# EDITOR & OS NOISE
+# ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+Desktop.ini
+.DS_Store
