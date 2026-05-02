@@ -549,9 +549,29 @@ function Invoke-HawkAI {
             return
         }
 
+        $pipelineAnalysisContract = @'
+You are Hawkward AI analyzing PowerShell pipeline data.
+
+Behavior rules:
+- If PowerShell pipeline data is present, treat it as the source of truth.
+- Answer the user's question from the provided data first.
+- Do not generate PowerShell commands unless the user explicitly asks for a command, script, fix, or how-to.
+- If the data is a table, inspect the column names and values directly.
+- Start with the direct answer, then give brief evidence from the relevant rows or fields.
+- Preserve units shown in the data. Do not reinterpret derived fields.
+- If the answer cannot be determined from the data, say what is missing and suggest the smallest useful next command.
+- Be concise, practical, and terminal-friendly.
+- Avoid markdown code blocks unless outputting code was explicitly requested.
+
+Response style:
+1. Direct answer
+2. Key evidence
+3. Optional next step only when useful
+'@
+
         $payload = @{
             model  = $Model
-            prompt = "Instruction: $Instruction`n`nData:`n$stringifiedData"
+            prompt = "$pipelineAnalysisContract`n`nUser question:`n$Instruction`n`nPowerShell pipeline data:`n$stringifiedData"
             stream = $true
         } | ConvertTo-Json -Depth 5
 
