@@ -6,6 +6,11 @@
 Reports/
 
 # ─────────────────────────────────────────────
+# LOCAL MEMORY (contains personal/system context — never commit)
+# ─────────────────────────────────────────────
+Memory/
+
+# ─────────────────────────────────────────────
 # POWERSHELL MODULE HELP CACHE
 # The Help/ directory contains cached help files pulled from the system.
 # These are machine-specific, large, and fully regenerable.

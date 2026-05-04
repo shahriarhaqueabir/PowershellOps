@@ -7,6 +7,8 @@ $script:HawkSuppressHeaders = $false
 $script:HawkSensitiveNamePattern = '(?i)(secret|token|password|passwd|pwd|credential|connection.?string|sas|bearer|api.?key|private.?key)'
 $script:HawkLastFirewallFilterError = $null
 $script:HawkReportRoot = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'Reports'
+$script:HawkMemoryRoot = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'Memory'
+$script:HawkMemoryFile = Join-Path $script:HawkMemoryRoot 'hawk-memory.jsonl'
 
 function Write-HawkHeader {
     param(
@@ -220,6 +222,316 @@ function Protect-HawkSensitiveText {
             '$1<REDACTED>$2'
         )
         $redacted
+    }
+}
+
+function Get-HawkMemoryFile {
+    [CmdletBinding()]
+    param()
+
+    if (-not (Test-Path $script:HawkMemoryRoot)) {
+        $null = New-Item -Path $script:HawkMemoryRoot -ItemType Directory -Force
+    }
+
+    return $script:HawkMemoryFile
+}
+
+function New-HawkMemoryId {
+    "mem_{0}_{1}" -f (Get-Date -Format 'yyyyMMdd_HHmmss'), ([Guid]::NewGuid().ToString('N').Substring(0, 6))
+}
+
+function Get-HawkMemorySearchTerm {
+    [CmdletBinding()]
+    param([AllowNull()][string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) { return @() }
+
+    $stopWords = @(
+        'the', 'and', 'for', 'with', 'that', 'this', 'from', 'into',
+        'what', 'when', 'where', 'which', 'how', 'why', 'are', 'you',
+        'your', 'about', 'using', 'use', 'most', 'more', 'less'
+    )
+
+    [regex]::Matches($Text.ToLowerInvariant(), '[a-z0-9][a-z0-9._-]{2,}') |
+    ForEach-Object { $_.Value } |
+    Where-Object { $_ -notin $stopWords } |
+    Select-Object -Unique -First 18
+}
+
+function Format-HawkMemorySnippet {
+    param(
+        [AllowNull()][string]$Text,
+        [int]$MaxLength = 220
+    )
+
+    if ($null -eq $Text) { return '' }
+
+    $clean = (($Text -replace "(`r`n|`n|`r)", ' ') -replace '\s+', ' ').Trim()
+    if ($clean.Length -le $MaxLength) { return $clean }
+    if ($MaxLength -le 1) { return $clean.Substring(0, 1) }
+    return $clean.Substring(0, $MaxLength - 1) + '…'
+}
+
+function Read-HawkMemory {
+    [CmdletBinding()]
+    param()
+
+    if (-not (Test-Path $script:HawkMemoryFile)) { return }
+
+    Get-Content -Path $script:HawkMemoryFile -ErrorAction SilentlyContinue |
+    Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+    ForEach-Object {
+        try {
+            $_ | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            Write-Verbose "Skipping malformed memory line: $_"
+        }
+    }
+}
+
+function Add-HawkMemory {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true, Position = 0, ValueFromRemainingArguments = $true)]
+        [string[]]$Text,
+        [ValidateSet('preference', 'runbook', 'session', 'web', 'sysops', 'note')]
+        [string]$Type = 'note',
+        [string[]]$Tag = @(),
+        [string]$Source = 'manual',
+        [ValidateSet('low', 'medium', 'high', 'user')]
+        [string]$Confidence = 'user',
+        [switch]$Pinned
+    )
+
+    $joinedText = ($Text -join ' ').Trim()
+    if (-not $joinedText) {
+        throw 'Memory text cannot be empty.'
+    }
+
+    $safeText = ($joinedText | Protect-HawkSensitiveText | Out-String).Trim()
+    $item = [ordered]@{
+        Id         = New-HawkMemoryId
+        Type       = $Type
+        Tags       = @($Tag)
+        Text       = $safeText
+        Source     = $Source
+        Created    = (Get-Date).ToString('o')
+        Confidence = $Confidence
+        Pinned     = [bool]$Pinned
+    }
+
+    $memoryFile = Get-HawkMemoryFile
+    ($item | ConvertTo-Json -Compress -Depth 6) | Add-Content -Path $memoryFile -Encoding UTF8
+    [PSCustomObject]$item
+}
+
+function Search-HawkMemory {
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
+        [string[]]$Query = @(),
+        [int]$First = 8,
+        [switch]$Pinned
+    )
+
+    $queryText = ($Query -join ' ').Trim()
+    $items = @(Read-HawkMemory)
+    if ($Pinned) {
+        $items = @($items | Where-Object { $_.Pinned })
+    }
+
+    if (-not $items -or $items.Count -eq 0) { return }
+
+    if (-not $queryText) {
+        $items |
+        Sort-Object Created -Descending |
+        Select-Object -First $First
+        return
+    }
+
+    $terms = @(Get-HawkMemorySearchTerm -Text $queryText)
+    if (-not $terms -or $terms.Count -eq 0) {
+        $items |
+        Sort-Object Created -Descending |
+        Select-Object -First $First
+        return
+    }
+
+    $scoredItems = foreach ($item in $items) {
+        $tags = if ($item.Tags) { @($item.Tags) -join ' ' } else { '' }
+        $haystack = "$($item.Type) $tags $($item.Text)".ToLowerInvariant()
+        $score = 0
+
+        foreach ($term in $terms) {
+            if ($haystack.Contains($term)) { $score++ }
+        }
+
+        if ($item.Pinned) { $score += 2 }
+
+        if ($score -gt 0) {
+            [PSCustomObject]@{
+                Score      = $score
+                Id         = $item.Id
+                Type       = $item.Type
+                Tags       = $item.Tags
+                Text       = $item.Text
+                Source     = $item.Source
+                Created    = $item.Created
+                Confidence = $item.Confidence
+                Pinned     = $item.Pinned
+            }
+        }
+    }
+
+    $scoredItems |
+    Sort-Object @{ Expression = 'Score'; Descending = $true }, @{ Expression = 'Created'; Descending = $true } |
+    Select-Object -First $First
+}
+
+function Get-HawkMemoryMap {
+    [CmdletBinding()]
+    param(
+        [string]$Tag,
+        [switch]$Pinned,
+        [int]$First = 40
+    )
+
+    $items = @(Read-HawkMemory)
+    if ($Pinned) {
+        $items = @($items | Where-Object { $_.Pinned })
+    }
+    if ($Tag) {
+        $items = @($items | Where-Object { $_.Tags -and @($_.Tags) -contains $Tag })
+    }
+
+    $items |
+    Sort-Object Created -Descending |
+    Select-Object -First $First |
+    Select-Object Created, Type, Id, Pinned, Tags, @{ Name = 'Text'; Expression = { Format-HawkMemorySnippet -Text $_.Text -MaxLength 96 } }
+}
+
+function Get-HawkAIIntent {
+    [CmdletBinding()]
+    param([AllowNull()][string]$Instruction)
+
+    if ([string]::IsNullOrWhiteSpace($Instruction)) { return 'AnalyzeData' }
+
+    $text = $Instruction.ToLowerInvariant()
+    if ($text -match '\b(search|web|online|latest|current|look up|lookup|research)\b') { return 'Research' }
+    if ($text -match '\b(command|script|cmdlet|syntax|powershell|how do i|how to|fix|change|install|remove|delete|start|stop|restart)\b') { return 'Shell' }
+    if ($text -match '\b(compare|changed|since|history|previous|trend)\b') { return 'Compare' }
+    if ($text -match '\b(summarize|summary|explain|why|what does)\b') { return 'Explain' }
+    return 'AnalyzeData'
+}
+
+function Get-HawkAIDataProfile {
+    [CmdletBinding()]
+    param([object[]]$InputObject = @())
+
+    $rows = @($InputObject | Where-Object { $null -ne $_ })
+    if (-not $rows -or $rows.Count -eq 0) {
+        return [PSCustomObject]@{
+            Kind    = 'Empty'
+            Rows    = 0
+            Columns = ''
+        }
+    }
+
+    $first = $rows[0]
+    if ($first -is [string]) {
+        return [PSCustomObject]@{
+            Kind    = 'Text'
+            Rows    = $rows.Count
+            Columns = 'Text'
+        }
+    }
+
+    $columns = @(
+        $first.PSObject.Properties |
+        Where-Object { $_.Name -notmatch '^PS' } |
+        Select-Object -ExpandProperty Name -First 24
+    )
+
+    [PSCustomObject]@{
+        Kind    = if ($columns.Count -gt 1) { 'Table' } else { 'Object' }
+        Rows    = $rows.Count
+        Columns = ($columns -join ', ')
+    }
+}
+
+function New-HawkAIMemoryContext {
+    [CmdletBinding()]
+    param(
+        [string]$Query,
+        [int]$First = 5
+    )
+
+    $pinned = @(Search-HawkMemory -Pinned -First 3)
+    $relevant = if ($Query) { @(Search-HawkMemory -Query $Query -First $First) } else { @() }
+    $seen = @{}
+    $selected = foreach ($item in @($pinned + $relevant)) {
+        if ($item.Id -and -not $seen.ContainsKey($item.Id)) {
+            $seen[$item.Id] = $true
+            $item
+        }
+    }
+
+    $selected = @($selected | Select-Object -First $First)
+    if (-not $selected -or $selected.Count -eq 0) { return '' }
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add('Relevant local memory:')
+    foreach ($item in $selected) {
+        $lines.Add("- [$($item.Type)] $(Format-HawkMemorySnippet -Text $item.Text -MaxLength 220)")
+    }
+
+    return ($lines -join [Environment]::NewLine)
+}
+
+function New-HawkAIContextPacket {
+    [CmdletBinding()]
+    param(
+        [string]$Instruction,
+        [object[]]$InputObject = @(),
+        [int]$MemoryLimit = 5,
+        [switch]$NoMemory
+    )
+
+    $intent = Get-HawkAIIntent -Instruction $Instruction
+    $profile = Get-HawkAIDataProfile -InputObject $InputObject
+    $mode = if ($Instruction -match '(?i)\b(deep|thorough|investigate|full|history|compare)\b') {
+        'Deep'
+    }
+    elseif ($intent -in @('Research', 'Compare')) {
+        'Balanced'
+    }
+    else {
+        'Fast'
+    }
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add('Context envelope:')
+    $lines.Add("- Mode: $mode")
+    $lines.Add("- Intent: $intent")
+    $lines.Add("- Data kind: $($profile.Kind)")
+    $lines.Add("- Rows: $($profile.Rows)")
+    if ($profile.Columns) {
+        $lines.Add("- Columns: $($profile.Columns)")
+    }
+
+    if (-not $NoMemory) {
+        $memoryContext = New-HawkAIMemoryContext -Query $Instruction -First $MemoryLimit
+        if ($memoryContext) {
+            $lines.Add('')
+            $lines.Add($memoryContext)
+        }
+    }
+
+    [PSCustomObject]@{
+        Intent = $intent
+        Mode   = $mode
+        Text   = ($lines -join [Environment]::NewLine)
     }
 }
 
@@ -525,8 +837,11 @@ function Invoke-HawkAI {
         [string]$Instruction = 'Analyze this data.',
         [string]$Model = 'hawk-reasoning',
         [int]$TimeoutSec = 120,
-        [int]$MaxRetries = 2,
-        [switch]$RedactSensitive
+        [int]$MaxRetries = 0,
+        [switch]$RedactSensitive,
+        [switch]$Remember,
+        [switch]$NoMemory,
+        [int]$MemoryLimit = 5
     )
 
     begin {
@@ -541,37 +856,21 @@ function Invoke-HawkAI {
             $stringifiedData = $stringifiedData | Protect-HawkSensitiveText | Out-String
         }
 
-        try {
-            $null = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 5 -ErrorAction Stop
-        }
-        catch {
-            Write-Host "`n  [Warning] AI Engine (Ollama) is not reachable on 127.0.0.1:11434. Start Ollama and try again." -ForegroundColor Red
-            return
-        }
+        $contextPacket = New-HawkAIContextPacket -Instruction $Instruction -InputObject $dataBuffer.ToArray() -MemoryLimit $MemoryLimit -NoMemory:$NoMemory
 
-        $pipelineAnalysisContract = @'
-You are Hawkward AI analyzing PowerShell pipeline data.
-
-Behavior rules:
-- If PowerShell pipeline data is present, treat it as the source of truth.
-- Answer the user's question from the provided data first.
-- Do not generate PowerShell commands unless the user explicitly asks for a command, script, fix, or how-to.
-- If the data is a table, inspect the column names and values directly.
-- Start with the direct answer, then give brief evidence from the relevant rows or fields.
-- Preserve units shown in the data. Do not reinterpret derived fields.
-- If the answer cannot be determined from the data, say what is missing and suggest the smallest useful next command.
-- Be concise, practical, and terminal-friendly.
-- Avoid markdown code blocks unless outputting code was explicitly requested.
-
-Response style:
-1. Direct answer
-2. Key evidence
-3. Optional next step only when useful
+        $assistantContract = @'
+You are Hawkward AI, a fast local PowerShell/SysOps assistant.
+Use the context envelope, relevant memory, and pipeline data as evidence.
+Default to a concise answer. Expand only when the user asks for deep analysis.
+If pipeline data is present, answer from it first and preserve its units.
+Do not output commands unless the user asks how to do something or asks for a command, script, fix, or change.
+Treat memory as helpful context, not absolute truth.
+If the answer is not in the data or context, say what is missing and suggest the smallest useful next check.
 '@
 
         $payload = @{
             model  = $Model
-            prompt = "$pipelineAnalysisContract`n`nUser question:`n$Instruction`n`nPowerShell pipeline data:`n$stringifiedData"
+            prompt = "$assistantContract`n`n$($contextPacket.Text)`n`nUser question:`n$Instruction`n`nPowerShell pipeline data:`n$stringifiedData"
             stream = $true
         } | ConvertTo-Json -Depth 5
 
@@ -591,6 +890,7 @@ Response style:
             $response = $null
             $stream = $null
             $reader = $null
+            $responseText = [System.Text.StringBuilder]::new()
             try {
                 $httpClient.Timeout = [TimeSpan]::FromSeconds($TimeoutSec)
                 $body = [System.Net.Http.StringContent]::new($payload, [System.Text.Encoding]::UTF8, 'application/json')
@@ -605,7 +905,10 @@ Response style:
 
                     try {
                         $chunk = $line | ConvertFrom-Json -ErrorAction Stop
-                        if ($chunk.response) { Write-Host $chunk.response -NoNewline -ForegroundColor White }
+                        if ($chunk.response) {
+                            $null = $responseText.Append($chunk.response)
+                            Write-Host $chunk.response -NoNewline -ForegroundColor White
+                        }
                         if ($chunk.done) { break }
                     }
                     catch {
@@ -614,6 +917,10 @@ Response style:
                 }
 
                 Write-Host ''
+                if ($Remember -and $responseText.Length -gt 0) {
+                    $sessionMemory = "Question: $Instruction`n`nAnswer: $($responseText.ToString())"
+                    Add-HawkMemory -Text $sessionMemory -Type session -Tag @('ai', $contextPacket.Intent.ToLowerInvariant(), $contextPacket.Mode.ToLowerInvariant()) -Source 'ai' | Out-Null
+                }
                 $success = $true
             }
             catch {
@@ -1181,21 +1488,82 @@ function New-HawkReport {
 }
 
 function Show-HawkManual {
+    [CmdletBinding()]
+    param([Parameter(Position = 0)][string]$Topic = '')
+
+    $topicKey = $Topic.ToLowerInvariant()
     Write-Host "`nHAWKWARD HYBRID - QUICK MANUAL`n" -ForegroundColor Cyan
-    Write-Host 'WORKFLOW:' -ForegroundColor Yellow
-    Write-Host ' 1. hawkdoctor  > profile/module/AI health'
-    Write-Host ' 2. resmap      > system load'
-    Write-Host ' 3. diskaudit   > disk health'
-    Write-Host ' 4. evntmap     > recent errors'
-    Write-Host ' 5. evntaudit   > error patterns'
-    Write-Host ' 6. nettriage   > ports + process + firewall rule'
-    Write-Host ' 7. fwaudit     > firewall gaps'
-    Write-Host ' 8. susaudit    > suspicious processes'
-    Write-Host ' 9. ghostaudit  > orphaned ports'
-    Write-Host '10. taskaudit   > scheduled risks'
-    Write-Host '11. bootmap     > startup persistence'
-    Write-Host '12. hawkreport  > console report + saved Markdown'
-    Write-Host "`nTIP: Pipe sensitive output through secretredact before AI: envmap -IncludeSensitive | secretredact | ai"
+
+    switch ($topicKey) {
+        'ai' {
+            Write-Host 'AI:' -ForegroundColor Yellow
+            Write-Host '  <command> | ai "question"       Analyze pipeline data fast'
+            Write-Host '  <command> | ai "deep check..."  Expands context when asked naturally'
+            Write-Host '  <command> | ai -Remember        Save useful Q&A to local memory'
+            Write-Host '  <command> | ai -NoMemory        Ignore memory for this request'
+            Write-Host '  Default behavior: fast, data-first, no commands unless requested.'
+        }
+        'sysops' {
+            Write-Host 'SYSOPS:' -ForegroundColor Yellow
+            Write-Host '  hawkdoctor   Profile/module/AI health'
+            Write-Host '  resmap       Top CPU/RAM consumers'
+            Write-Host '  diskaudit    Disk health'
+            Write-Host '  evntmap      Recent warnings/errors'
+            Write-Host '  evntaudit    Event storm detection'
+            Write-Host '  nettriage    Ports + process + firewall rule'
+            Write-Host '  fwaudit      Firewall gaps'
+            Write-Host '  susaudit     Temp/AppData process audit'
+            Write-Host '  taskaudit    Scheduled task risks'
+            Write-Host '  bootmap      Startup persistence'
+        }
+        'search' {
+            Write-Host 'WEB SEARCH:' -ForegroundColor Yellow
+            Write-Host '  ggl "query"                 Open browser search'
+            Write-Host '  ggl "query" -AI             Fast web-to-AI synthesis'
+            Write-Host '  ggl "query" -AI -Deep       More sources, slower'
+            Write-Host '  ggl "query" -AI -Sources 6  Choose source count'
+        }
+        'memory' {
+            Write-Host 'MEMORY:' -ForegroundColor Yellow
+            Write-Host '  remember "fact or preference"             Save local memory'
+            Write-Host '  remember "fact" -Type preference -Pinned  Keep a high-value preference close'
+            Write-Host '  recall "topic"                            Search memory'
+            Write-Host '  memmap                                    Show recent memories'
+            Write-Host '  memmap -Pinned                            Show pinned memories'
+            Write-Host '  Memory is local JSONL under Memory/ and is ignored by git.'
+        }
+        'reports' {
+            Write-Host 'REPORTS:' -ForegroundColor Yellow
+            Write-Host '  hawkreport                              Console report + saved Markdown'
+            Write-Host '  hawkreport -Format Json -Path file.json Save structured snapshot'
+            Write-Host '  Reports are local and ignored by git.'
+        }
+        'advanced' {
+            Write-Host 'ADVANCED:' -ForegroundColor Yellow
+            Write-Host '  secretredact     Redact sensitive pipeline text'
+            Write-Host '  projaudit        Git repo audit under project root'
+            Write-Host '  pathaudit        PATH validation'
+            Write-Host '  aidoctor         Ollama model status'
+            Write-Host '  reload           Reload profile'
+            Write-Host '  dash             Re-render dashboard'
+        }
+        default {
+            Write-Host 'CORE:' -ForegroundColor Yellow
+            Write-Host '  ai          Analyze, explain, summarize, or help with PowerShell'
+            Write-Host '  ggl         Browser search or fast web-to-AI synthesis'
+            Write-Host '  hawkreport  System snapshot and saved report'
+            Write-Host '  remember    Save local do/dont, runbook, or useful session note'
+            Write-Host '  recall      Search local memory'
+            Write-Host ''
+            Write-Host 'COMMON FLOW:' -ForegroundColor Yellow
+            Write-Host '  resmap | ai "what is using the most memory?"'
+            Write-Host '  ggl "windows event id 10016" -AI'
+            Write-Host '  remember "Prefer fast answers unless I ask for deep." -Type preference -Pinned'
+            Write-Host ''
+            Write-Host 'MORE HELP:' -ForegroundColor Yellow
+            Write-Host '  hawkman ai | sysops | search | memory | reports | advanced'
+        }
+    }
 }
 
 function Resolve-HawkDuckDuckGoHref {
@@ -1218,10 +1586,28 @@ function Invoke-HawkSearch {
         [string]$Engine = 'google',
         [Alias('a')]
         [switch]$AI,
+        [switch]$Deep,
+        [ValidateRange(1, 30)]
+        [int]$Sources = 0,
         [string]$Instruction = 'Synthesize a concise report answering the query based on the following website contents. Extract key facts and insights.'
     )
 
-    $cleanQuery = $Query | Where-Object { $_ -notmatch '^-AI$|^-a$|^-Engine$|^-e$' -and $_ -notin @('google', 'ddg', 'gh', 'so', 'bing') }
+    $skipNext = $false
+    $cleanQuery = foreach ($token in $Query) {
+        if ($skipNext) {
+            $skipNext = $false
+            continue
+        }
+
+        if ($token -in @('-AI', '-a', '-Deep')) { continue }
+        if ($token -in @('-Engine', '-e', '-Sources')) {
+            $skipNext = $true
+            continue
+        }
+        if ($token -in @('google', 'ddg', 'gh', 'so', 'bing')) { continue }
+        $token
+    }
+
     $joinedQuery = ($cleanQuery -join ' ').Trim()
     if (-not $joinedQuery) {
         throw 'Search query cannot be empty.'
@@ -1261,21 +1647,23 @@ function Invoke-HawkSearch {
 
         $context = "Search Query: $joinedQuery`n`n"
         $readCount = 0
-        $targetReadCount = 10
+        $targetReadCount = if ($Sources -gt 0) { $Sources } elseif ($Deep) { 10 } else { 4 }
+        $pageTimeoutSec = if ($Deep) { 10 } else { 6 }
+        $maxPageChars = if ($Deep) { 3000 } else { 1800 }
 
         foreach ($url in $urls) {
             if ($readCount -ge $targetReadCount) { break }
 
             Write-Host "  [Read] $url" -ForegroundColor DarkGray
             try {
-                $page = Invoke-WebRequest -Uri $url -Headers @{ 'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+                $page = Invoke-WebRequest -Uri $url -Headers @{ 'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } -UseBasicParsing -TimeoutSec $pageTimeoutSec -ErrorAction Stop
                 $cleanText = [System.Net.WebUtility]::HtmlDecode(($page.Content -replace '(?s)<style[^>]*>.*?</style>', '' -replace '(?s)<script[^>]*>.*?</script>', '' -replace '<[^>]+>', ' ').Trim())
                 $cleanText = $cleanText -replace '\s+', ' '
                 if ([string]::IsNullOrWhiteSpace($cleanText)) {
                     throw 'No readable text extracted from the page.'
                 }
 
-                if ($cleanText.Length -gt 3000) { $cleanText = $cleanText.Substring(0, 3000) }
+                if ($cleanText.Length -gt $maxPageChars) { $cleanText = $cleanText.Substring(0, $maxPageChars) }
                 $context += "Source: $url`nContent: $cleanText`n`n"
                 $readCount++
             }
@@ -1456,6 +1844,9 @@ function Show-HawkDashboard {
             Items = @(
                 @{ Icon = '⌕'; Alias = 'ggl'; Desc = 'Search + AI' }
                 @{ Icon = 'λ'; Alias = 'ai'; Desc = 'Analyze' }
+                @{ Icon = '+'; Alias = 'remember'; Desc = 'Memory' }
+                @{ Icon = '?'; Alias = 'recall'; Desc = 'Recall' }
+                @{ Icon = '≡'; Alias = 'memmap'; Desc = 'Memory map' }
                 @{ Icon = '⑂'; Alias = 'projaudit'; Desc = 'Repos' }
                 @{ Icon = '▧'; Alias = 'hawkreport'; Desc = 'Report + MD' }
                 @{ Icon = '↗'; Alias = 'proj'; Desc = 'Root' }
@@ -1542,6 +1933,9 @@ function Set-HawkAliases {
     Set-Alias -Scope Global -Name secretredact -Value Protect-HawkSensitiveText -Force
     Set-Alias -Scope Global -Name projaudit    -Value Get-HawkProjectAudit -Force
     Set-Alias -Scope Global -Name hawkreport   -Value New-HawkReport -Force
+    Set-Alias -Scope Global -Name remember     -Value Add-HawkMemory -Force
+    Set-Alias -Scope Global -Name recall       -Value Search-HawkMemory -Force
+    Set-Alias -Scope Global -Name memmap       -Value Get-HawkMemoryMap -Force
 }
 
 function Initialize-HawkProfile {
