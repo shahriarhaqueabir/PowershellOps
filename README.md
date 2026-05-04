@@ -13,6 +13,154 @@
 
 ---
 
+## 🧭 Profile-Level Signal
+
+This repository is not just a PowerShell profile. It is a case study in building a local-first operations system: security checks, diagnostics, AI-assisted analysis, memory, reporting, and a dashboard wrapped into one daily terminal workflow.
+
+| What I Build | How I Think | Problems I Care About |
+|---|---|---|
+| Local developer and sysadmin tools that reduce friction in the terminal | Systems first: start with the workflow, then module boundaries, then aliases, then proof | Security visibility, local AI privacy, repeatable diagnostics, and faster operator feedback loops |
+| PowerShell 7 modules with clean profile loading and memorable commands | AI as an engineering partner: prompts, constraints, failures, refinements, and verification are part of the artefact | Turning scattered checks into calm, inspectable workflows |
+| Tooling that produces evidence: reports, maps, audits, and build logs | Iterative delivery: ship useful slices, measure pain, harden the weak points | Making thoughtful engineering visible to humans scanning a repo in 30 seconds |
+
+Most project READMEs stop at “here is the app.” This one also shows why the system exists, how it is assembled, where AI helped, and what trade-offs shaped the result.
+
+---
+
+## 🎯 Why This Exists
+
+PowerShell profiles usually grow into personal junk drawers: aliases, one-off scripts, brittle startup logic, and tools that only make sense to the original author. Hawkward Hybrid turns that pattern into a structured local ops layer.
+
+The goal is simple:
+
+- Make security and system state visible from the first terminal session
+- Keep AI analysis private by default through local Ollama inference
+- Replace scattered manual checks with repeatable commands and saved reports
+- Preserve the reasoning behind the build so the repo shows process, not just output
+
+The project is aimed at developers, sysadmins, and AI-assisted builders who want a terminal that can inspect, explain, report, and remember without shipping sensitive context to a cloud service.
+
+---
+
+## 🧩 Architecture
+
+```mermaid
+flowchart TD
+    User["PowerShell 7 user"] --> Profile["Microsoft.PowerShell_profile.ps1"]
+    Profile --> Manifest["HawkwardHybrid.psd1"]
+    Manifest --> Module["HawkwardHybrid.psm1"]
+
+    Module --> Init["Initialize-HawkProfile"]
+    Init --> Prompt["Git-aware prompt cache"]
+    Init --> Aliases["Short command aliases"]
+    Init --> Dashboard["Startup dashboard"]
+    Init --> Prereqs["Optional module imports"]
+
+    Aliases --> Sentinel["Sentinel security audits"]
+    Aliases --> Diagnostics["System diagnostics"]
+    Aliases --> Environment["Environment maps"]
+    Aliases --> AI["Local AI and search"]
+    Aliases --> Reports["Report engine"]
+    Aliases --> Memory["Local memory"]
+
+    Sentinel --> ReportData["Structured PowerShell objects"]
+    Diagnostics --> ReportData
+    Environment --> ReportData
+    ReportData --> Markdown["Markdown reports"]
+    ReportData --> Json["JSON exports"]
+
+    AI --> Ollama["Ollama on 127.0.0.1"]
+    AI --> DDG["DuckDuckGo Lite search"]
+    AI --> Memory
+    Memory --> MemoryFile["Memory/hawk-memory.jsonl"]
+
+    Reports --> ReportFiles["Reports/hawkreport-*.md"]
+```
+
+### Data Flow: Web-to-AI Search
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ggl as ggl -AI
+    participant DDG as DuckDuckGo Lite
+    participant Web as Result pages
+    participant AI as Local Ollama model
+
+    User->>ggl: ggl "windows firewall hardening" -AI
+    ggl->>DDG: Fetch search results
+    DDG-->>ggl: Candidate URLs
+    ggl->>Web: Read selected pages
+    Web-->>ggl: Cleaned and truncated content
+    ggl->>AI: Prompt + source context
+    AI-->>User: Streamed synthesis in terminal
+```
+
+---
+
+## 🔁 Before / After
+
+| Before | After |
+|---|---|
+| A plain PowerShell profile with scattered functions | A module-backed toolkit loaded by a thin profile bootstrap |
+| Manual security checks across ports, firewall, registry, events, and tasks | One-command audits: `ghostaudit`, `fwaudit`, `bootmap`, `taskaudit`, `evntaudit` |
+| AI use was separate from the terminal workflow | Pipeline-native local AI: `resmap \| ai "what matters here?"` |
+| Sensitive context required manual caution | `secretredact` and local Ollama keep private data handling explicit |
+| Diagnostics disappeared after the session | `hawkreport` creates timestamped Markdown or JSON evidence |
+| Reasoning lived outside the repo | `PROJECT_LOG.md` records prompts, failures, refinements, and design lessons |
+
+---
+
+## 🤖 AI Workflow & Iteration Strategy
+
+The AI layer is designed as a workflow primitive, not a novelty feature.
+
+| Workflow Move | How It Shows Up Here |
+|---|---|
+| Prompt strategy | The local model receives a context envelope: intent, mode, data profile, relevant local memory, and pipeline input |
+| Constraint setting | The assistant contract asks for concise answers, data-first reasoning, and no commands unless requested |
+| Failure refinement | Streaming replaced buffered REST calls; module loading replaced a brittle monolithic profile; redaction guards were added before AI handoff |
+| Verification | `hawkdoctor`, structured report generation, parser checks, and command aliases make the workflow inspectable |
+| Memory | `remember`, `recall`, and `memmap` store local preferences and runbooks as gitignored JSONL |
+
+### Build Log Snapshot
+
+| Iteration | Problem Found | Refinement |
+|---|---|---|
+| 1. Profile prototype | One syntax error could break the whole shell | Move logic into `HawkwardHybrid.psm1`; keep the profile as a loader |
+| 2. Audit suite | Listing data was useful but noisy | Cross-reference listeners, firewall rules, startup entries, scheduled tasks, and events |
+| 3. AI integration | Buffered AI responses felt slow and opaque | Stream Ollama responses token-by-token with retry support |
+| 4. Privacy pass | Pipeline data can include secrets | Add `secretredact`, sensitive env detection, and local-only model defaults |
+| 5. Proof layer | Good diagnostics vanished after the terminal closed | Generate Markdown/JSON reports and document the build decisions in `PROJECT_LOG.md` |
+
+---
+
+## 🖼️ Demo & Screenshots
+
+The current repo is ready for visual proof. Add these assets before publishing the profile widely:
+
+| Asset | Placeholder | Purpose |
+|---|---|---|
+| Dashboard screenshot | `{PLACEHOLDER: docs/screenshots/dashboard.png}` | Show the first-session experience |
+| Security audit screenshot | `{PLACEHOLDER: docs/screenshots/fwaudit-nettriage.png}` | Prove the audit suite is real |
+| AI analysis screenshot | `{PLACEHOLDER: docs/screenshots/local-ai-pipeline.png}` | Show pipeline data flowing into local AI |
+| Report output screenshot | `{PLACEHOLDER: docs/screenshots/hawkreport-markdown.png}` | Show generated evidence |
+| Short demo GIF | `{PLACEHOLDER: docs/demo/hawkward-hybrid-terminal-demo.gif}` | Recruiter-friendly 20-30 second scan |
+
+---
+
+## ✅ Repo-Level Audit Snapshot
+
+| Area | Signal In This Repo |
+|---|---|
+| Clarity | Problem, audience, workflow, and command surface are stated up front |
+| Architecture | Module loader, manifest, module boundaries, report engine, AI path, and memory store are diagrammed |
+| AI Usage | Prompt strategy, context envelope, local inference, search synthesis, and failure refinements are documented |
+| Proof | Dashboard preview exists; screenshot and GIF placeholders are now called out explicitly |
+| Engineering Signals | Module manifest, structured outputs, git prompt cache, report generation, `.gitignore` privacy boundaries, and build log |
+
+---
+
 ## ✨ What Is This?
 
 Hawkward Hybrid is a **custom PowerShell 7 module and profile** that transforms a plain terminal into a self-contained ops toolkit. It ships with:
@@ -156,6 +304,9 @@ The dashboard will appear on every new session automatically.
 |---|---|---|
 | `ai` | `Invoke-HawkAI` | Pipe any data to the local Ollama model for analysis |
 | `ggl` | `Invoke-HawkSearch` | Search any engine in-browser, or add `-AI` for web-to-AI synthesis |
+| `remember` | `Add-HawkMemory` | Save local preferences, runbooks, and useful notes |
+| `recall` | `Search-HawkMemory` | Search local memory |
+| `memmap` | `Get-HawkMemoryMap` | List recent or pinned memory entries |
 | `projaudit` | `Get-HawkProjectAudit` | Lists all Git repos under the project root with branch/dirty status |
 | `proj` | `Invoke-HawkProject` | `cd` to the configured project root |
 | `hawkreport` | `New-HawkReport` | Full system snapshot → console table + timestamped Markdown file |
@@ -178,6 +329,12 @@ envmap -IncludeSensitive | secretredact | ai 'Summarize the environment configur
 
 # Direct question
 "Explain PSReadLine prediction modes" | ai
+
+# Save a high-value preference for future AI calls
+remember "Prefer fast answers unless I ask for deep analysis." -Type preference -Pinned
+
+# Save a useful AI answer as session memory
+resmap | ai "What is using the most memory?" -Remember
 ```
 
 ### Web-to-AI search synthesis
@@ -188,6 +345,9 @@ ggl "powershell scheduled tasks best practices"
 
 # Fetches top DuckDuckGo results, scrapes content, synthesizes with AI
 ggl "powershell scheduled tasks best practices" -AI
+
+# Default AI search is fast; use Deep when more sources matter
+ggl "powershell scheduled tasks best practices" -AI -Deep
 
 # Use a specific engine for browser search
 ggl "windows firewall hardening" -Engine bing
@@ -267,6 +427,7 @@ Initialize-HawkProfile -ProjectRoot 'D:\Work' -ShowDashboard
 
 - **`secretredact`** / `Protect-HawkSensitiveText` automatically masks values for keys matching: `secret`, `token`, `password`, `passwd`, `pwd`, `credential`, `connectionstring`, `sas`, `bearer`, `apikey`, `privatekey`
 - All AI inference runs **100% locally** via Ollama — no data leaves your machine
+- Local memory is stored under `Memory/` as JSONL and ignored by git
 - The profile detects non-admin sessions and warns when registry access may be limited
 - The dashboard and interactive features are **suppressed in CI** (`$env:CI`) and redirected-output sessions automatically
 
