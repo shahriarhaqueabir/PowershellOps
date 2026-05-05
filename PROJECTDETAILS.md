@@ -1,4 +1,4 @@
-# Hawkward Hybrid — GitHub Project Details
+# Hawkward Sentinal — GitHub Project Details
 
 ## Project Description (for GitHub repository settings)
 
