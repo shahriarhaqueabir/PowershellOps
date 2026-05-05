@@ -1,4 +1,4 @@
-# 🦅 Hawkward Sentinal
+# 🦅 Hawkward Sentinel
 
 **Hawkward Sentinal turns your PowerShell 7 terminal into a fully-loaded ops toolkit** focused on auditing Windows security and monitoring system health. Integrated with a private local AI right in the terminal, tuned to the PowerShell 7 environment and also able to synthesise answers straight from the web using duckduckgo search. A live dashboard with tooltips and guides walks you through capabilities that security teams pay thousands for. All built into your profile — custom, free, offline, and completely private.
 

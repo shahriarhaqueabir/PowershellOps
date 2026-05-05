@@ -1,4 +1,4 @@
-# 🦅 Hawkward Sentinal — Project Build Log
+# 🦅 Hawkward Sentinel — Project Build Log
 
 > A complete record of how this project was developed: the rules, the prompts, the pitfalls, and the optimal workflow from blank terminal to Sentinel Edition v11.2.
 
