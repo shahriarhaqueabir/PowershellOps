@@ -1,4 +1,4 @@
-# 🦅 Hawkward Sentinel — Project Build Log
+# 🦅 Hawkward Hybrid — Project Build Log
 
 > A complete record of how this project was developed: the rules, the prompts, the pitfalls, and the optimal workflow from blank terminal to Sentinel Edition v11.2.
 
@@ -37,7 +37,7 @@
 | **Use streaming (`stream: true`) and `HttpClient` directly** | `Invoke-RestMethod` buffers the entire response; streaming lets AI output appear token-by-token |
 | **Pipe through `secretredact` before AI for sensitive data** | `envmap -IncludeSensitive | secretredact | ai` — never send raw secrets to any model |
 | **Retry logic with back-off** | `Invoke-HawkAI` supports `-MaxRetries` with a 3-second sleep between attempts |
-| **Model name in the custom `hawk-reasoning` Modelfile** | Using a named model means the Modelfile system prompt is always applied; avoids raw `ollama run` calls |
+| **Model name in the custom `HawkPowershell` Modelfile** | Using a named model means the Modelfile system prompt is always applied; avoids raw `ollama run` calls |
 
 ### Security Audit Functions
 
@@ -169,23 +169,8 @@ Build the module in this order — each layer depends on the previous:
 ### Phase 4 — Install Dependencies
 
 ```powershell
-# Load the module temporarily
-Import-Module .\Modules\HawkwardHybrid\HawkwardHybrid.psd1 -Force
-
-# Install Gallery modules
-Install-HawkPrerequisites
-
-# Verify
-Import-HawkPrerequisites
-```
-
-### Phase 5 — AI Model Setup
-
-```powershell
-# Ensure Ollama is running (system tray or: ollama serve)
-
-# Create the custom hawk-reasoning model
-ollama create hawk-reasoning -f .\AI\distilledqwen.modelfile
+# Create the custom HawkPowershell model
+ollama create HawkPowershell -f .\AI\HawkPowershell.modelfile
 
 # Verify
 aidoctor

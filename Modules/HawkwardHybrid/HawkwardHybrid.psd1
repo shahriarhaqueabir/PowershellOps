@@ -5,16 +5,10 @@
     Author            = 'shahr'
     CompanyName       = 'Hawkward'
     Copyright         = '(c) 2026 shahr. All rights reserved.'
-    Description       = 'Hawkward Hybrid local PowerShell ops, diagnostics, AI, and security audit toolkit.'
+    Description       = 'Hawkward Hybrid local PowerShell ops toolkit.'
     PowerShellVersion = '7.0'
     FunctionsToExport = '*'
     CmdletsToExport   = @()
-    VariablesToExport = '*'
+    VariablesToExport = @()
     AliasesToExport   = '*'
-    PrivateData       = @{
-        PSData = @{
-            Tags       = @('PowerShell', 'Diagnostics', 'Security', 'Ollama', 'AI')
-            ProjectUri = ''
-        }
-    }
 }
