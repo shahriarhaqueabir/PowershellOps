@@ -9,6 +9,7 @@ Reports/
 # LOCAL MEMORY (contains personal/system context — never commit)
 # ─────────────────────────────────────────────
 Memory/
+AI/TestMemory/
 
 # ─────────────────────────────────────────────
 # POWERSHELL MODULE HELP CACHE
@@ -25,7 +26,7 @@ Scripts/InstalledScriptInfos/
 # ─────────────────────────────────────────────
 # THIRD-PARTY / VENDORED MODULES
 # These are installed from the PowerShell Gallery, not owned by this project.
-# Users install them via Install-HawkPrerequisites.
+# Users install them via Install-HawkPrerequisite.
 # ─────────────────────────────────────────────
 Modules/Terminal-Icons/
 Modules/PSReadLine/
@@ -34,6 +35,8 @@ Modules/PowerTree/
 Modules/ZLocation/
 Modules/PSAI/
 Modules/ollama-powershell/
+Modules/Pester/
+Modules/PSScriptAnalyzer/
 
 # ─────────────────────────────────────────────
 # WINDOWS SYSTEM MODULE CACHE
@@ -45,6 +48,7 @@ Help/**/*.zip
 # ─────────────────────────────────────────────
 # BACKUP / LEGACY FILES
 # ─────────────────────────────────────────────
+BackupOriginal/
 *.backup.ps1
 *.bak
 *.old
@@ -62,6 +66,16 @@ Help/**/*.zip
 .env.*
 secrets.*
 credentials.*
+
+# ─────────────────────────────────────────────
+# TEST ARTEFACTS
+# ─────────────────────────────────────────────
+testResults.xml
+
+# ─────────────────────────────────────────────
+# LOCAL CONFIGURATION
+# ─────────────────────────────────────────────
+powershell.config.json
 
 # ─────────────────────────────────────────────
 # EDITOR & OS NOISE

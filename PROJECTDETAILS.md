@@ -1,4 +1,4 @@
-# Hawkward Sentinel — GitHub Project Details
+# Hawkward Hybrid — GitHub Project Details
 
 ## Project Description (for GitHub repository settings)
 
@@ -100,7 +100,7 @@ ggl "query" -AI
      │        └─ Truncate to 3000 chars per source
      │
      └─ POST http://127.0.0.1:11434/api/generate  (streaming)
-              Model: hawk-reasoning
+               Model: HawkPowershell
               Prompt: Instruction + aggregated source content
               Response: streamed token-by-token to console
 ```
