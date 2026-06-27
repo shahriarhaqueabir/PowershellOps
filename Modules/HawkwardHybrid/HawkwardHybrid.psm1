@@ -27,14 +27,14 @@ function Invoke-HawkCachedData {
         [Parameter(Mandatory = $true)][scriptblock]$ScriptBlock
     )
     $now = Get-Date
-    
+
     if ($script:HawkCacheStore.ContainsKey($Key)) {
         $entry = $script:HawkCacheStore[$Key]
         if (($now - $entry.Timestamp).TotalSeconds -lt $ExpirySeconds) {
             return $entry.Value
         }
     }
-    
+
     $computedValue = &$ScriptBlock
     $script:HawkCacheStore[$Key] = [hashtable]::Synchronized(@{ Timestamp = $now; Value = $computedValue })
     return $computedValue
@@ -52,7 +52,7 @@ class HawkMemoryEntry {
     [bool]   $Pinned
 
     HawkMemoryEntry() {}
-    
+
     HawkMemoryEntry([hashtable]$map) {
         $this.Id         = $map.Id
         $this.Type       = $map.Type
@@ -159,7 +159,7 @@ function Get-HawkPromptGitSegment {
     [CmdletBinding()]
     param([string]$Reset)
     $cwd = $ExecutionContext.SessionState.Path.CurrentLocation.Path
-    
+
     if (-not $script:HawkGitPromptBlock) {
         $script:HawkGitPromptBlock = {
             param([string]$currentDir, [string]$ansiReset)
@@ -167,9 +167,9 @@ function Get-HawkPromptGitSegment {
             if (-not (Test-Path $gitDir)) {
                 $parent = Split-Path $currentDir -Parent
                 for ($i = 0; $i -lt 3 -and $parent; $i++) {
-                    if (Test-Path (Join-Path $parent '.git')) { 
+                    if (Test-Path (Join-Path $parent '.git')) {
                         $gitDir = Join-Path $parent '.git'
-                        break 
+                        break
                     }
                     $parent = Split-Path $parent -Parent
                 }
@@ -207,12 +207,12 @@ function Set-HawkPrompt {
 
 # ── 5. SECURITY DATA PROTECTION REFACTOR (SAFE REGEX PROCESSING) ──────────────
 function Protect-HawkSensitiveText {
-    [CmdletBinding()] 
+    [CmdletBinding()]
     param([Parameter(ValueFromPipeline = $true)][AllowNull()]$InputObject)
     process {
         if ($null -eq $InputObject) { return }
         $text = if ($InputObject -is [string]) { $InputObject } else { $InputObject | Out-String }
-        
+
         $cleanPattern = $script:HawkSensitiveNamePattern -replace '\(\?[a-z]+\)', ''
         $redacted = [regex]::Replace($text, ('(?im)^(\s*[^=\r\n]*(?:' + $cleanPattern + ')[^=\r\n]*\s*=\s*).+$'), '$1<REDACTED>')
         $jsonPattern = '(?i)("(?:[^"]*(?:' + $cleanPattern + ')[^"]*)"\s*:\s*")[^"]*(")'
@@ -353,8 +353,8 @@ function Get-HawkApp {
         "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
     )
     try {
-        Get-ItemProperty $regPaths -ErrorAction SilentlyContinue | 
-            Where-Object { $_.DisplayName -and $_.DisplayVersion } | 
+        Get-ItemProperty $regPaths -ErrorAction SilentlyContinue |
+            Where-Object { $_.DisplayName -and $_.DisplayVersion } |
             Select-Object @{N='Name';E={$_.DisplayName}}, @{N='Version';E={$_.DisplayVersion}}
     } catch { @() }
 }
@@ -422,7 +422,7 @@ function Get-HawkScheduledTaskRiskAudit {
     return Invoke-HawkCachedData -Key 'sys_taskaudit' -ExpirySeconds 300 -ScriptBlock {
         if (-not (Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue)) { return @() }
         Get-ScheduledTask |
-            Where-Object { $_.State -ne 'Disabled' -and $_.TaskPath -notmatch '^\\\\Microsoft' } | 
+            Where-Object { $_.State -ne 'Disabled' -and $_.TaskPath -notmatch '^\\\\Microsoft' } |
             Select-Object -First 10 |
             ForEach-Object { [PSCustomObject]@{ TaskName = $_.TaskName; Path = $_.TaskPath } }
     }
@@ -432,9 +432,9 @@ function Get-HawkEventStormAudit {
     return Invoke-HawkCachedData -Key 'sys_eventstorm' -ExpirySeconds 20 -ScriptBlock {
         try {
             $cutoff = (Get-Date).AddMinutes(-15)
-            Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $cutoff } -MaxEvents 200 -ErrorAction SilentlyContinue | 
+            Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $cutoff } -MaxEvents 200 -ErrorAction SilentlyContinue |
                 Group-Object ProviderName |
-                Sort-Object Count -Descending | 
+                Sort-Object Count -Descending |
                 Select-Object -First 5 |
                 ForEach-Object { [PSCustomObject]@{ Count = $_.Count; Name = $_.Name; Source = 'Application Log' } }
         } catch { return @() }
@@ -559,10 +559,16 @@ function Get-HawkRecent {
         Select-Object Name, LastWriteTime | Sort-Object LastWriteTime -Descending | Select-Object -First 5
 }
 function Get-HawkDriveHealth {
-    Get-CimInstance -Namespace root\wmi -ClassName MSStorageDriver_FailurePredictStatus -ErrorAction SilentlyContinue |
+    $result = Get-CimInstance -Namespace root\wmi -ClassName MSStorageDriver_FailurePredictStatus -ErrorAction SilentlyContinue |
         Select-Object InstanceName, PredictFailure
+    if (-not $result) { return [PSCustomObject]@{ Status = 'No SMART data available'; PredictFailure = 'Unknown' } }
+    $result
 }
-function Get-HawkDump { Get-ChildItem "$env:windir\Minidump" -ErrorAction SilentlyContinue | Select-Object Name, Length, LastWriteTime }
+function Get-HawkDump {
+    $result = Get-ChildItem "$env:windir\Minidump" -ErrorAction SilentlyContinue | Select-Object Name, Length, LastWriteTime
+    if (-not $result) { return [PSCustomObject]@{ Status = 'No memory dumps found'; Path = "$env:windir\Minidump" } }
+    $result
+}
 function Get-HawkBadFile {
     $results = Get-ChildItem -File -ErrorAction SilentlyContinue | Where-Object { $_.Length -gt 500MB }
     $suspicious = @('.encrypt', '.locked', '.crypt', '.xyz', '.zepto', '.cerber')
@@ -578,6 +584,7 @@ function Get-HawkLink {
     $shell = New-Object -ComObject WScript.Shell -ErrorAction SilentlyContinue
     if (-not $shell) { return [PSCustomObject]@{ LinksProcessed = 0; Error = 'WScript.Shell COM unavailable' } }
     $links = Get-ChildItem *.lnk -ErrorAction SilentlyContinue
+    if (-not $links) { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null; return [PSCustomObject]@{ LinksProcessed = 0; Status = 'No .lnk files in current directory' } }
     $results = foreach ($link in $links) {
         try {
             $shortcut = $shell.CreateShortcut($link.FullName)
@@ -585,7 +592,8 @@ function Get-HawkLink {
         } catch { Write-Verbose "Failed to resolve shortcut: $($_.Exception.Message)" }
     }
     [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null
-    @($results)
+    if (-not $results) { return [PSCustomObject]@{ LinksProcessed = 0; Status = 'No shortcuts could be resolved' } }
+    $results
 }
 function Get-HawkLock {
     param([string]$Path = (Get-Location).Path)
@@ -602,15 +610,19 @@ function Get-HawkLock {
     $results
 }
 function Get-HawkSparseFile {
-    Get-ChildItem -Recurse -ErrorAction SilentlyContinue |
+    $result = Get-ChildItem -Recurse -ErrorAction SilentlyContinue |
         Where-Object { $_.Attributes -band [System.IO.FileAttributes]::SparseFile } |
         Select-Object FullName, Length | Select-Object -First 20
+    if (-not $result) { return [PSCustomObject]@{ Status = 'No sparse files detected'; Count = 0 } }
+    $result
 }
 function Get-HawkCompressedDir {
-    Get-ChildItem -Recurse -ErrorAction SilentlyContinue |
-        Where-Object { $_.PSIsContainer -and $_.Attributes -band [System.IO.FileAttributes]::Compressed } |
+    $result = Get-ChildItem -Recurse -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Attributes -band [System.IO.FileAttributes]::Compressed } |
         Select-Object FullName, @{N='CompressedSizeKB';E={[Math]::Round(($_.GetFiles() | Measure-Object Length -Sum).Sum / 1KB, 1)}} |
         Select-Object -First 20
+    if (-not $result) { return [PSCustomObject]@{ Status = 'No compressed directories detected'; Count = 0 } }
+    $result
 }
 function Get-HawkAppLocation { param([string]$App) Get-Command $App -ErrorAction SilentlyContinue | Select-Object Name, Source }
 function Get-HawkShield {
@@ -739,11 +751,11 @@ function Invoke-HawkSearch {
 
     $cleanTokens = $Query | Where-Object { $_ -notmatch '^-(AI|a|Deep|Engine|e|Sources)$' }
     $jq = ($cleanTokens -join ' ').Trim()
-    
+
     if (-not $jq) {
         throw 'Search query parameters evaluate to empty payload context.'
     }
-    
+
     $enc = [Uri]::EscapeDataString($jq)
     $urls = @{
         google = "https://www.google.com/search?q=$enc"
@@ -758,27 +770,27 @@ function Invoke-HawkSearch {
         Start-Process $urls[$Engine]
         return
     }
-    
+
     Write-HawkHeader " [Search] Processing Link Nodes for: $jq" Cyan
     # Parsing loop continuation execution logic...
     try {
         $resp = Invoke-WebRequest -Uri 'https://lite.duckduckgo.com/lite/' -Method Post -Body @{ q = $jq } -UseBasicParsing -ErrorAction Stop
-        
+
         # Modified parsing layer using explicit regex analysis against standard basic HTML properties
-        $targetUrls = [regex]::Matches($resp.Content, 'href="([^"]+)"') | ForEach-Object { $_.Groups[1].Value } | 
-            Where-Object { $_ -match 'uddg=' } | ForEach-Object { Resolve-HawkDuckDuckGoHref -Href $_ } | 
+        $targetUrls = [regex]::Matches($resp.Content, 'href="([^"]+)"') | ForEach-Object { $_.Groups[1].Value } |
+            Where-Object { $_ -match 'uddg=' } | ForEach-Object { Resolve-HawkDuckDuckGoHref -Href $_ } |
             Where-Object { $_ -and $_ -notmatch '^https?://(www\.)?duckduckgo\.com' } | Select-Object -Unique -First 30
-        
+
         if (-not $targetUrls) { Start-Process $urls[$Engine]; return }
-        
+
         $context = "Search Query: $jq`n`n"
         $read = 0
         $targetCount = if ($Sources -gt 0) { $Sources } elseif ($Deep) { 10 } else { 4 }
-        
+
         foreach ($u in $targetUrls) {
             if ($read -ge $targetCount) { break }
             Write-HawkHeader "  [Read] Processing structural node: $u" DarkGray
-            
+
             $page = $null
             $maxRetries = 2
             for ($attempt = 0; $attempt -le $maxRetries; $attempt++) {
@@ -790,36 +802,36 @@ function Invoke-HawkSearch {
                     Start-Sleep -Seconds ([Math]::Pow(2, $attempt))
                 }
             }
-            
+
             if (-not $page) { continue }
-            
+
             $contentType = $page.BaseResponse.ContentType
             if ($contentType -notmatch 'text/html|application/xhtml\+xml') {
                 Write-HawkHeader "  [Validation Warning] Skipping binary content payload: $contentType" Yellow
                 continue
             }
-            
+
             $txt = [System.Net.WebUtility]::HtmlDecode(($page.Content -replace '(?s)<style[^>]*>.*?</style>', '' -replace '(?s)<script[^>]*>.*?</script>', '' -replace '<[^>]+>', ' ').Trim()) -replace '\s+', ' '
             if ([string]::IsNullOrWhiteSpace($txt)) { continue }
-            
+
             if (Test-HawkPromptInjection -Payload $txt) {
                 Write-HawkHeader "  [Security Triggered] High anomaly metric identified inside text layout node. Node isolated." Red
                 continue
             }
-            
+
             $qualityScore = Get-HawkSourceQualityScore -Url $u -Content $txt
             if ($qualityScore -lt 40) {
                 Write-HawkHeader "  [Quality Check Failed] Payload score ($qualityScore/100) below threshold of 40. Skipping." Yellow
                 continue
             }
-            
+
             if ($txt.Length -gt $(if($Deep){3000}else{1800})) { $txt = $txt.Substring(0, $(if($Deep){3000}else{1800})) }
             $context += "Source: $u (Score: $qualityScore)`nContent: $txt`n`n"
             $read++
-            
+
             Start-Sleep -Milliseconds 400
         }
-        
+
         if ($read -eq 0) { Start-Process $urls[$Engine]; return }
         Write-HawkHeader '  [AI] Synthesizing engines across checked endpoints...' Magenta
         $context | Invoke-HawkAI -Instruction $Instruction
@@ -863,18 +875,18 @@ function Read-HawkMemory {
 }
 
 function Add-HawkMemory {
-    [CmdletBinding(SupportsShouldProcess=$true)] 
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param(
-        [Parameter(Mandatory = $true, Position = 0, ValueFromRemainingArguments = $true)][string[]]$Text, 
-        [ValidateSet('preference', 'runbook', 'session', 'web', 'sysops', 'note')][string]$Type = 'note', 
-        [string[]]$Tag = @(), 
-        [string]$Source = 'manual', 
-        [ValidateSet('low', 'medium', 'high', 'user')][string]$Confidence = 'user', 
+        [Parameter(Mandatory = $true, Position = 0, ValueFromRemainingArguments = $true)][string[]]$Text,
+        [ValidateSet('preference', 'runbook', 'session', 'web', 'sysops', 'note')][string]$Type = 'note',
+        [string[]]$Tag = @(),
+        [string]$Source = 'manual',
+        [ValidateSet('low', 'medium', 'high', 'user')][string]$Confidence = 'user',
         [switch]$Pinned
     )
     $joined = ($Text -join ' ').Trim()
     if (-not $joined) { throw 'Payload buffer verification empty.' }
-    
+
     $map = [hashtable]@{
         Id         = Format-HawkMemoryId
         Type       = $Type
@@ -885,7 +897,7 @@ function Add-HawkMemory {
         Confidence = $Confidence
         Pinned     = [bool]$Pinned
     }
-    
+
     if ($PSCmdlet.ShouldProcess("Memory entry: $(Format-HawkMemorySnippet -Text $joined)", 'Save memory')) {
         $typedInstance = [HawkMemoryEntry]::new($map)
         ($typedInstance | ConvertTo-Json -Compress -Depth 6) | Add-Content -Path (Get-HawkMemoryFile) -Encoding UTF8
@@ -900,10 +912,10 @@ function Search-HawkMemory {
     if ($Pinned) { $items = @($items | Where-Object { $_.Pinned }) }
     if (-not $items) { return }
     if (-not $queryText) { $items | Sort-Object Created -Descending | Select-Object -First $First; return }
-    
+
     $terms = @(Get-HawkMemorySearchTerm -Text $queryText)
     if (-not $terms) { $items | Sort-Object Created -Descending | Select-Object -First $First; return }
-    
+
     @(foreach ($item in $items) {
         $score = 0
         $haystack = "$($item.Type) $((@($item.Tags) -join ' ')) $($item.Text)".ToLowerInvariant()
@@ -943,8 +955,8 @@ function Get-HawkAIStatus {
             foreach ($model in $models) {
                 [PSCustomObject]@{ Endpoint = $Endpoint; Status = 'Reachable'; Model = $model.name; SizeGB = [Math]::Round($model.size / 1GB, 2); Modified = $model.modified_at }
             }
-        } catch { 
-            [PSCustomObject]@{ Endpoint = $Endpoint; Status = 'Unavailable'; Model = ''; SizeGB = ''; Modified = $_.Exception.Message } 
+        } catch {
+            [PSCustomObject]@{ Endpoint = $Endpoint; Status = 'Unavailable'; Model = ''; SizeGB = ''; Modified = $_.Exception.Message }
         }
     }
 }
@@ -1099,8 +1111,8 @@ function New-HawkReport {
     [CmdletBinding(SupportsShouldProcess=$true)] param([ValidateSet('Console', 'Markdown', 'Json')][string]$Format = 'Console', [string]$Path)
     $prev = $script:HawkSuppressHeaders; $script:HawkSuppressHeaders = $true
     try {
-        $report = [ordered]@{ 
-            Generated          = Get-Date 
+        $report = [ordered]@{
+            Generated          = Get-Date
             AI                 = @(Get-HawkAIStatus)
             Disk               = @(Get-HawkDiskPressureAudit)
             Resources          = @(Get-HawkResourceMap)
@@ -1108,7 +1120,7 @@ function New-HawkReport {
             FirewallGaps       = @(Get-HawkFirewallAudit)
             Startup            = @(Get-HawkBootMap)
             ScheduledTaskRisks = @(Get-HawkScheduledTaskRiskAudit)
-            EventStorms        = @(Get-HawkEventStormAudit) 
+            EventStorms        = @(Get-HawkEventStormAudit)
         }
     } finally { $script:HawkSuppressHeaders = $prev }
     $md = ConvertTo-HawkReportMarkdown -Report $report
@@ -1140,7 +1152,7 @@ function Show-HawkDashboard {
     $aiStatus = try { $null = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 2 -ErrorAction Stop; 'ACTIVE' } catch { 'STANDBY' }
     $pRoot = if ($global:HawkProjectRoot) { $global:HawkProjectRoot } else { $script:HawkDefaultProjectRoot }
     $fit = { param([string]$Text, [int]$Width) if ($Width -le 0) { '' }; if ($null -eq $Text) { '' }; if ($Text.Length -gt $Width) { return $Text.Substring(0, $Width - 1) + '…' }; $Text.PadRight($Width) }
-    
+
     $cWidth = try { [Console]::WindowWidth } catch { 120 }; if ($cWidth -lt 1) { $cWidth = 120 }
     $dbWidth = [Math]::Max(78, [Math]::Min(($cWidth - 4), 150)); $boxTextWidth = $dbWidth - 2; $gap = '  '
     $colCount = if ($dbWidth -ge 116) { 4 } elseif ($dbWidth -ge 76) { 2 } else { 1 }
@@ -1413,8 +1425,8 @@ function Set-HawkAliases {
         @("projaudit", "Get-HawkProject"),
         @("ports", "Get-HawkPortMap")
     )
-    foreach ($m in $mappings) { 
-        Set-Alias -Scope Global -Name $m[0] -Value $m[1] -Force 
+    foreach ($m in $mappings) {
+        Set-Alias -Scope Global -Name $m[0] -Value $m[1] -Force
     }
 }
 
