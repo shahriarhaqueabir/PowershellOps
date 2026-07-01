@@ -10,7 +10,7 @@ $moduleFile = Join-Path $projectRoot "Modules\HawkwardHybrid\HawkwardHybrid.psm1
 $testFile = Join-Path $projectRoot "Modules\HawkwardHybrid\Tests\HawkwardHybrid.Tests.ps1"
 
 Write-Host "╔═══════════════════════════════════════════════════╗" -ForegroundColor Magenta
-Write-Host "║      HAWKWARD HYBRID BUILD v11.2               ║" -ForegroundColor Cyan
+Write-Host "║      HAWKWARD HYBRID BUILD v11.3               ║" -ForegroundColor Cyan
 Write-Host "╚═══════════════════════════════════════════════════╝" -ForegroundColor Magenta
 Write-Host ""
 

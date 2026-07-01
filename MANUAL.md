@@ -1,8 +1,8 @@
 # 🦅 Hawkward Hybrid — Quick Reference Manual
 
-> v11.2 · Ops Toolkit  
+> v11.3 · Ops Toolkit  
 > Load time: **~137ms** (module) · **~2.3s** (full profile)  
-> Total: **95 exported functions** · **60+ aliases** · **4 consolidated dispatch verbs**
+> Total: **103 exported functions** · **safe `hawk-*` aliases** · **4 consolidated dispatch verbs** · **7 scenario workflows**
 
 ---
 
@@ -127,7 +127,7 @@ The dashboard queries Ollama `/api/tags` (2s timeout) to report AI status (ACTIV
 | `path` | `Get-HawkPathAudit` | `$env:Path -split ';'` → validates each entry with `Test-Path`; flags missing/inaccessible |
 | `app` | `Get-HawkApp` | `Get-ItemProperty` on `HKLM:\Software\...\Uninstall\*`, `Wow6432Node\...\Uninstall\*`, `HKCU:\...\Uninstall\*` → DisplayName, DisplayVersion. |
 | `where` | `Get-HawkAppLocation` | `Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue` → returns full path(s) of an executable in PATH |
-| _(none)_ | `Get-HawkProject` | Returns `$global:HawkProjectRoot` (or default `E:\Projects`) |
+| _(none)_ | `Get-HawkProject` | Returns `$global:HawkProjectRoot` (or the derived checkout/profile root, or `$HAWK_PROJECT_ROOT`) |
 
 ---
 
@@ -216,9 +216,9 @@ The dashboard queries Ollama `/api/tags` (2s timeout) to report AI status (ACTIV
 
 | Alias | Full command | Under the hood |
 |-------|-------------|----------------|
-| `init` | `Initialize-HawkProfile` | Sets `$global:HawkProjectRoot` → imports prerequisites via `Import-HawkPrerequisite` (`Terminal-Icons`, `PSReadLine`, `PSTree`) → configures PSReadLine (prediction source History + ListView mode) → sets aliases (`Set-HawkAliases`) → sets prompt (`Set-HawkPrompt`). `-SkipModules` bypasses prereq import; `-ShowDashboard` forces dashboard render. Supports `-WhatIf`. |
+| `init` | `Initialize-HawkProfile` | Sets `$global:HawkProjectRoot` → imports prerequisites via `Import-HawkPrerequisite` (`Terminal-Icons`, `PSReadLine`, `PSTree`) → validates expected module metadata → configures PSReadLine (prediction source History + ListView mode) → sets safe `hawk-*` aliases (`Set-HawkAliases`) → sets prompt (`Set-HawkPrompt`). `-SkipModules` bypasses prereq import; `-ShowDashboard` forces dashboard render. Supports `-WhatIf`. |
 | `proj` | `Get-HawkProject` | Returns the current `$global:HawkProjectRoot` path |
-| `projset` | `Invoke-HawkProject` | Sets `$global:HawkProjectRoot` to a new path (or defaults to `E:\Projects`). Supports `-WhatIf`. |
+| `projset` | `Invoke-HawkProject` | Sets `$global:HawkProjectRoot` to a new path (or defaults to the derived checkout/profile root). Supports `-WhatIf`. |
 | `explorer` | `Invoke-ExplorerHere` | `Start-Process explorer.exe -ArgumentList (Get-Location).Path` — opens current directory in File Explorer |
 | `cached` | `Invoke-HawkCachedData` | Thread-safe key-value cache (`[hashtable]::Synchronized`) with per-key TTL. Accepts `-Key`, `-ExpirySeconds`, `-ScriptBlock`. Used internally by health checks, firewall audit, port map, and scheduled task audit. |
 
@@ -226,13 +226,56 @@ The dashboard queries Ollama `/api/tags` (2s timeout) to report AI status (ACTIV
 
 | Full command | Under the hood |
 |-------------|----------------|
-| `Install-HawkPrerequisite` | `Install-Module Terminal-Icons, PSReadLine, PSTree -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop`. Supports `-WhatIf`. |
+| `Install-HawkPrerequisite` | `Install-Module Terminal-Icons, PSReadLine, PSTree -Scope CurrentUser -Force -ErrorAction Stop`, then validates the installed module metadata against the expected author/company profile. Supports `-WhatIf`. |
 | `Import-HawkPrerequisite` | `Import-Module Terminal-Icons, PSReadLine, PSTree -ErrorAction SilentlyContinue`. Returns status per module (Imported/Missing/Failed). |
 | `Update-HawkModule` | Walks up from `$PSScriptRoot` to find `.git` directory → `git pull` → `Remove-Module HawkwardHybrid` → `Import-Module HawkwardHybrid.psd1 -Force -Global`. Supports `-WhatIf`. |
 
 ---
 
-## 10. CONSOLIDATED DISPATCH
+## 10. 🔄 WORKFLOWS
+
+> Each workflow combines multiple single-purpose functions into a scenario-driven scored report with color-coded status, drill-down sections, and actionable recommendations. Workflows use `Invoke-HawkCachedData` for per-key TTL caching across runs.
+
+### Display helpers (module-internal)
+
+These three helpers are shared by all workflow functions and are not exported:
+- `Write-HawkWorkflowBanner` — Renders the decorated box banner with title, timestamp, and hostname
+- `Write-HawkWorkflowSection` — Section header with dynamic rule-line padding, configurable foreground color
+- `Write-HawkRecommendations` — Iterates recommendation tuples (icon, color, message) and renders each with `Write-Host`
+
+### Workflow aliases
+
+| Alias | Full command | What it aggregates | Data sources |
+|-------|-------------|-------------------|-------------|
+| `dailyops` | `Invoke-HawkDailyOps` | Health + uptime + disk + network + DNS + events + temp + power | 8 sub-functions, scored 0–100, C: <10% free → 🔴 CRITICAL + score penalty |
+| `sysreview` | `Invoke-HawkSystemReview` | Spec + health + uptime + RAM + disk + resource map + ports + temp + hypervisor + power + license | 11 sub-functions, sections: HARDWARE / PERFORMANCE / RESOURCE CONSUMERS / LISTENING PORTS / STORAGE / LICENSE |
+| `secaudit` | `Invoke-HawkSecurityAudit` | Firewall + boot + scheduled tasks + ghost ports + suspicious procs + events + admin + shield | 8 sub-functions, sections: DEFENDER / FIREWALL / STARTUP & TASKS / ADMINISTRATORS / ANOMALIES |
+| `netdiag` | `Invoke-HawkNetworkDiagnostics` | NetCheck + Wi-Fi + DNS bench + DNS cache + link speed + shares + hosts + established + triage | 9 sub-functions, sections: CONNECTIVITY / DNS RESOLVERS / INTERFACES / SHARES / HOSTS FILE |
+| `threat` | `Invoke-HawkThreatHunt` | Suspicious procs + ghost ports + events + bad files + locked files + sparse files + compressed dirs + firewall | 8 sub-functions, categorizes findings into THREATS / WARNINGS / INFO buckets |
+| `change` | `Invoke-HawkChangeAudit` | Recent files + patches + drivers + dumps + boot + certs | 6 sub-functions, sections: RECENT FILES / UPDATES / DRIVERS / CRASH DUMPS / STARTUP / CERTIFICATES |
+| `compliance` | `Invoke-HawkComplianceCheck` | Admin count + Defender + firewall gaps + non-MS tasks + boot entries + patches + license + hypervisor + ports | 9 CIS-inspired checks, returns pass/fail tally with percentage score |
+
+### Scoring system
+
+All scored workflows (`dailyops`, `sysreview`, `secaudit`, `netdiag`, `change`) share this pattern:
+- Start at **100**, deduct for each finding below thresholds
+- Floor at **0** (`[Math]::Max(0, $score)`)
+- Thresholds: **≥80 🟢** (good), **50–79 🟡** (attention needed), **<50 🔴** (critical)
+- `compliance` uses a separate pass-rate percentage instead
+
+### Return value
+
+Every workflow returns `[PSCustomObject]` for programmatic use. Common properties:
+```powershell
+$result = dailyops
+$result.Score            # 0-100 numeric score
+$result.Recommendations  # Array of [icon, color, message] tuples
+$result.Health           # Individual sub-function result objects
+```
+
+---
+
+## 11. CONSOLIDATED DISPATCH
 
 Four "umbrella" commands organize the most common queries under a single verb:
 
@@ -245,14 +288,14 @@ Four "umbrella" commands organize the most common queries under a single verb:
 
 ---
 
-## 11. CONFIGURATION
+## 12. CONFIGURATION
 
 ```powershell
 # Change project root at init
 Initialize-HawkProfile -ProjectRoot 'D:\Work' -ShowDashboard
 
 # Skip prereq module import on init
-Initialize-HawkProfile -ProjectRoot 'E:\Projects' -SkipModules
+Initialize-HawkProfile -SkipModules
 
 # Suppress dashboard
 $env:HAWK_NO_DASH = '1'
@@ -262,12 +305,12 @@ $env:HAWK_NO_DASH = '1'
 |----------|---------|---------|
 | `$env:HAWK_NO_DASH` | unset | Set to `1` to suppress dashboard |
 | `$env:CI` | unset | Automatically suppresses dashboard |
-| `$global:HawkProjectRoot` | `E:\Projects` | Project root for `proj`/`projset` |
+| `$global:HawkProjectRoot` | derived checkout/profile root or `$HAWK_PROJECT_ROOT` | Project root for `proj`/`projset` |
 | `$script:HawkSensitiveNamePattern` | regex | Pattern for `Protect-HawkSensitiveText` redaction |
 
 ---
 
-## 12. PIPELINE TIPS
+## 13. PIPELINE TIPS
 
 ```powershell
 # Chain commands — all Get-Hawk* output objects work with Where-Object, Format-Table, Export-Csv
@@ -278,6 +321,15 @@ boot | Export-Csv startup.csv
 # Pipe to AI
 res | ai "Which process is using the most RAM?"
 fw | ai "Any gaps in firewall rules?"
+
+# Run a full daily ops scan
+dailyops
+
+# Run a security audit and check the score
+secaudit | ForEach-Object { $_.Score }
+
+# Export compliance check results
+compliance | Export-Csv compliance-report.csv
 
 # Redact before sending to AI
 envmap -IncludeSensitive | secretredact | ai "Summarize the environment"
@@ -291,7 +343,7 @@ res | ai "What is using the most memory?" -Remember
 
 ---
 
-## 13. PERFORMANCE
+## 14. PERFORMANCE
 
 | Operation | Time |
 |-----------|------|
@@ -302,12 +354,16 @@ res | ai "What is using the most memory?" -Remember
 | First audit run | ~500ms–2s (depends on WMI queries) |
 | AI query (Ollama, first) | ~5–20s (model load) |
 | AI query (Ollama, cached) | ~500ms–5s |
+| Daily ops scan (cached) | ~1–3s |
+| Compliance check (cached) | ~2–5s |
 
 The 2.3s profile load is mainly from `Import-HawkPrerequisite` checking PSGallery. Second runs are faster due to caching. AI first-query latency depends on whether `hawkpowershell:latest` is already loaded in Ollama.
 
 ---
 
-## 14. COMPLETE ALIAS INDEX
+## 15. COMPLETE ALIAS INDEX
+
+> Loaded shell aliases are now prefixed with `hawk-` to avoid shadowing standard commands. The labels below map to the underlying Hawk command families.
 
 ### System
 `health` · `spec` · `uptime` · `ram` · `battery` · `display` · `hyperv` · `powerplan` · `license` · `disk` · `temp` · `clip` · `smarts` · `res` · `port`
@@ -329,6 +385,9 @@ The 2.3s profile load is mainly from `Import-HawkPrerequisite` checking PSGaller
 
 ### Reports
 `hawkreport` · `reportpath`
+
+### Workflows (new in v11.3)
+`dailyops` · `sysreview` · `secaudit` · `netdiag` · `threat` · `change` · `compliance`
 
 ### Module & Shell
 `dash` · `watch` · `hawkman` · `reload` · `init` · `proj` · `projset` · `explorer` · `cached`
