@@ -13,7 +13,8 @@ if (-not (Test-Path $hawkModuleManifest)) {
 
 try {
     Import-Module $hawkModuleManifest -Force -ErrorAction Stop
-    Initialize-HawkProfile -ProjectRoot 'E:\Projects' -ShowDashboard
+    $hawkProjectRoot = if ($env:HAWK_PROJECT_ROOT) { $env:HAWK_PROJECT_ROOT } else { $hawkProfileRoot }
+    Initialize-HawkProfile -ProjectRoot $hawkProjectRoot -ShowDashboard
 }
 catch {
     Write-Warning "Hawkward Hybrid module initialization crash: $($_.Exception.Message)"
