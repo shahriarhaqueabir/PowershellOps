@@ -102,3 +102,7 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 powershellOps.code-workspace
+hawk-test-results.xml
+ }
+nul
+__final_check.ps1
