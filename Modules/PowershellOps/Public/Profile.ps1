@@ -1,13 +1,13 @@
 # ── PUBLIC: PROFILE & INIT ─────────────────────────────────────────────────
 
-function Install-HawkPrerequisite {
+function Install-OpsPrerequisite {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
-        [string[]]$ModuleName = $script:HawkRequiredModules
+        [string[]]$ModuleName = $script:OpsRequiredModules
     )
     foreach ($module in $ModuleName) {
         if (Get-Module -ListAvailable -Name $module) {
-            $trust = Test-HawkModulePublisher -ModuleName $module
+            $trust = Test-OpsModulePublisher -ModuleName $module
             if (-not $trust.Trusted) {
                 [PSCustomObject]@{
                     Module      = $module
@@ -24,7 +24,7 @@ function Install-HawkPrerequisite {
         if ($PSCmdlet.ShouldProcess($module, 'Install PowerShell module for current user')) {
             try {
                 Install-Module -Name $module -Scope CurrentUser -Force -ErrorAction Stop
-                $trust = Test-HawkModulePublisher -ModuleName $module
+                $trust = Test-OpsModulePublisher -ModuleName $module
                 if (-not $trust.Trusted) {
                     [PSCustomObject]@{
                         Module      = $module
@@ -43,18 +43,18 @@ function Install-HawkPrerequisite {
     }
 }
 
-function Import-HawkPrerequisite {
+function Import-OpsPrerequisite {
     [CmdletBinding()]
     param(
-        [string[]]$ModuleName = $script:HawkRequiredModules,
+        [string[]]$ModuleName = $script:OpsRequiredModules,
         [switch]$Quiet
     )
     $results = foreach ($module in $ModuleName) {
         if (-not (Get-Module -ListAvailable -Name $module)) {
-            [PSCustomObject]@{ Module = $module; Status = 'Missing'; Message = 'Run Install-HawkPrerequisites' }
+            [PSCustomObject]@{ Module = $module; Status = 'Missing'; Message = 'Run Install-OpsPrerequisites' }
             continue
         }
-        $trust = Test-HawkModulePublisher -ModuleName $module
+        $trust = Test-OpsModulePublisher -ModuleName $module
         if (-not $trust.Trusted) {
             [PSCustomObject]@{
                 Module      = $module
@@ -75,7 +75,7 @@ function Import-HawkPrerequisite {
     if (-not $Quiet) { $results }
 }
 
-function Set-HawkReadLine {
+function Set-OpsReadLine {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param()
     if (-not (Get-Command Set-PSReadLineOption -ErrorAction SilentlyContinue)) { return }
@@ -87,26 +87,26 @@ function Set-HawkReadLine {
     }
 }
 
-function Get-HawkPromptText {
+function Get-OpsPromptText {
     param([bool]$LastSuccess = $true)
     $esc = [char]27
     $reset = "${esc}[0m"
     $path = (Get-Location).Path -replace "^$([Regex]::Escape([Environment]::GetFolderPath('UserProfile')))", '~'
     $pathSegment = "${esc}[48;5;158m${esc}[38;5;16m 󰉋 $path ${reset}"
     $timeSegment = "${esc}[48;5;244m${esc}[38;5;255m 󱑎 $([System.DateTime]::Now.ToString('HH:mm:ss')) ${reset}"
-    $gitSegment = Get-HawkPromptGitSegment -Reset $reset
+    $gitSegment = Get-OpsPromptGitSegment -Reset $reset
     $statusColor = if ($LastSuccess) { "${esc}[38;5;158m" } else { "${esc}[38;5;217m" }
     return "`n${pathSegment}${timeSegment}${gitSegment}`n${statusColor}󱞩 ${reset} "
 }
 
-function Get-HawkPromptGitSegment {
+function Get-OpsPromptGitSegment {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Used in cached scriptblock via closure')]
     [CmdletBinding()]
     param([string]$Reset)
     $cwd = $ExecutionContext.SessionState.Path.CurrentLocation.Path
 
-    if (-not $script:HawkGitPromptBlock) {
-        $script:HawkGitPromptBlock = {
+    if (-not $script:OpsGitPromptBlock) {
+        $script:OpsGitPromptBlock = {
             param([string]$currentDir, [string]$ansiReset)
             $gitDir = Join-Path $currentDir '.git'
             if (-not (Test-Path $gitDir)) {
@@ -135,164 +135,164 @@ function Get-HawkPromptGitSegment {
         }
     }
 
-    return Invoke-HawkCachedData -Key "git_prompt_$cwd" -ExpirySeconds 3 -ScriptBlock {
-        &$script:HawkGitPromptBlock $cwd $Reset
+    return Invoke-OpsCachedData -Key "git_prompt_$cwd" -ExpirySeconds 3 -ScriptBlock {
+        &$script:OpsGitPromptBlock $cwd $Reset
     }
 }
 
-function Set-HawkPrompt {
+function Set-OpsPrompt {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param()
     if ($PSCmdlet.ShouldProcess('global:prompt', 'Set custom prompt function')) {
         if (-not (Get-Module oh-my-posh, posh-git -ErrorAction SilentlyContinue)) {
-            Set-Item -Path Function:\global:Prompt -Value { Get-HawkPromptText -LastSuccess:$? }
+            Set-Item -Path Function:\global:Prompt -Value { Get-OpsPromptText -LastSuccess:$? }
         }
     }
 }
 
-function Set-HawkAliases {
+function Set-OpsAliases {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', 'Intentionally sets all aliases in one call')]
     [CmdletBinding(SupportsShouldProcess=$true)]
     param()
-    if (-not $PSCmdlet.ShouldProcess('Global aliases', 'Set all Hawk aliases')) { return }
+    if (-not $PSCmdlet.ShouldProcess('Global aliases', 'Set all Ops aliases')) { return }
     $mappings = @(
-        @("corehealth", "Get-HawkHealth"),
-        @("sysspec", "Get-HawkSpec"),
-        @("sysuptime", "Get-HawkUptime"),
-        @("ramstats", "Get-HawkRamInfo"),
-        @("battstatus", "Get-HawkBattery"),
-        @("gpuview", "Get-HawkDisplay"),
-        @("powertriage", "Get-HawkPower"),
-        @("vmcheck", "Get-HawkHypervisor"),
-        @("liccheck", "Get-HawkLicense"),
-        @("diskpressure", "Get-HawkDiskPressureAudit"),
-        @("tempcheck", "Get-HawkTempCheck"),
-        @("clipcheck", "Get-HawkClipCheck"),
-        @("smartstatus", "Get-HawkDriveHealth"),
-        @("resourcemap", "Get-HawkResourceMap"),
-        @("portmap", "Get-HawkPortMap"),
-        @("adminaudit", "Get-HawkAdmin"),
-        @("shieldstatus", "Get-HawkShield"),
-        @("fwcheck", "Get-HawkFirewallAudit"),
-        @("bootmap", "Get-HawkBootMap"),
-        @("taskrisk", "Get-HawkScheduledTaskRiskAudit"),
-        @("ghostports", "Get-HawkGhostPortAudit"),
-        @("susprocs", "Get-HawkSuspiciousProcessAudit"),
-        @("eventstorm", "Get-HawkEventStormAudit"),
-        @("certaudit", "Get-HawkCert"),
-        @("dumpmap", "Get-HawkDump"),
-        @("filecheck", "Get-HawkBadFile"),
-        @("shortcutcheck", "Get-HawkLink"),
-        @("lockcheck", "Get-HawkLock"),
-        @("sparsecheck", "Get-HawkSparseFile"),
-        @("compresscheck", "Get-HawkCompressedDir"),
-        @("patchhistory", "Get-HawkPatchHistory"),
-        @("driveraudit", "Get-HawkDriverAudit"),
-        @("recentfiles", "Get-HawkRecent"),
-        @("secretmask", "Protect-HawkSensitiveText"),
-        @("netping", "Get-HawkNetCheck"),
-        @("wificheck", "Get-HawkWifi"),
-        @("peerscheck", "Get-HawkEstablished"),
-        @("dnsbench", "Get-HawkDnsBench"),
-        @("netspeed", "Get-HawkLinkSpeed"),
-        @("smbshares", "Get-HawkShare"),
-        @("hostscheck", "Get-HawkHostsCheck"),
-        @("dnsmap", "Get-HawkDnsCache"),
-        @("nettriage", "Get-HawkNetworkTriage"),
-        @("envmap", "Get-HawkEnvMap"),
-        @("pathaudit", "Get-HawkPathAudit"),
-        @("applist", "Get-HawkApp"),
-        @("apploc", "Get-HawkAppLocation"),
-        @("askai", "Invoke-HawkAI"),
-        @("websearch", "Invoke-HawkSearch"),
-        @("aistatus", "Get-HawkAIStatus"),
-        @("aiintent", "Get-HawkAIIntent"),
-        @("aiprofile", "Get-HawkAIDataProfile"),
-        @("sourcequality", "Get-HawkSourceQualityScore"),
-        @("safetycheck", "Test-HawkPromptInjection"),
-        @("airemember", "Add-HawkMemory"),
-        @("airecall", "Search-HawkMemory"),
-        @("memorymap", "Get-HawkMemoryMap"),
-        @("memoryread", "Read-HawkMemory"),
-        @("memoryfile", "Get-HawkMemoryFile"),
-        @("fullreport", "New-HawkReport"),
-        @("reportpath", "Get-HawkReportPath"),
-        @("coreindex", "Show-HawkDashboard"),
-        @("watchindex", "Watch-HawkDashboard"),
-        @("coremanual", "Show-HawkManual"),
-        @("corereload", "Update-HawkProfile"),
-        @("coreinit", "Initialize-HawkProfile"),
-        @("projview", "Get-HawkProject"),
-        @("projset", "Invoke-HawkProject"),
+        @("corehealth", "Get-OpsHealth"),
+        @("sysspec", "Get-OpsSpec"),
+        @("sysuptime", "Get-OpsUptime"),
+        @("ramstats", "Get-OpsRamInfo"),
+        @("battstatus", "Get-OpsBattery"),
+        @("gpuview", "Get-OpsDisplay"),
+        @("powertriage", "Get-OpsPower"),
+        @("vmcheck", "Get-OpsHypervisor"),
+        @("liccheck", "Get-OpsLicense"),
+        @("diskpressure", "Get-OpsDiskPressureAudit"),
+        @("tempcheck", "Get-OpsTempCheck"),
+        @("clipcheck", "Get-OpsClipCheck"),
+        @("smartstatus", "Get-OpsDriveHealth"),
+        @("resourcemap", "Get-OpsResourceMap"),
+        @("portmap", "Get-OpsPortMap"),
+        @("adminaudit", "Get-OpsAdmin"),
+        @("shieldstatus", "Get-OpsShield"),
+        @("fwcheck", "Get-OpsFirewallAudit"),
+        @("bootmap", "Get-OpsBootMap"),
+        @("taskrisk", "Get-OpsScheduledTaskRiskAudit"),
+        @("ghostports", "Get-OpsGhostPortAudit"),
+        @("susprocs", "Get-OpsSuspiciousProcessAudit"),
+        @("eventstorm", "Get-OpsEventStormAudit"),
+        @("certaudit", "Get-OpsCert"),
+        @("dumpmap", "Get-OpsDump"),
+        @("filecheck", "Get-OpsBadFile"),
+        @("shortcutcheck", "Get-OpsLink"),
+        @("lockcheck", "Get-OpsLock"),
+        @("sparsecheck", "Get-OpsSparseFile"),
+        @("compresscheck", "Get-OpsCompressedDir"),
+        @("patchhistory", "Get-OpsPatchHistory"),
+        @("driveraudit", "Get-OpsDriverAudit"),
+        @("recentfiles", "Get-OpsRecent"),
+        @("secretmask", "Protect-OpsSensitiveText"),
+        @("netping", "Get-OpsNetCheck"),
+        @("wificheck", "Get-OpsWifi"),
+        @("peerscheck", "Get-OpsEstablished"),
+        @("dnsbench", "Get-OpsDnsBench"),
+        @("netspeed", "Get-OpsLinkSpeed"),
+        @("smbshares", "Get-OpsShare"),
+        @("hostscheck", "Get-OpsHostsCheck"),
+        @("dnsmap", "Get-OpsDnsCache"),
+        @("nettriage", "Get-OpsNetworkTriage"),
+        @("envmap", "Get-OpsEnvMap"),
+        @("pathaudit", "Get-OpsPathAudit"),
+        @("applist", "Get-OpsApp"),
+        @("apploc", "Get-OpsAppLocation"),
+        @("askai", "Invoke-OpsAI"),
+        @("websearch", "Invoke-OpsSearch"),
+        @("aistatus", "Get-OpsAIStatus"),
+        @("aiintent", "Get-OpsAIIntent"),
+        @("aiprofile", "Get-OpsAIDataProfile"),
+        @("sourcequality", "Get-OpsSourceQualityScore"),
+        @("safetycheck", "Test-OpsPromptInjection"),
+        @("airemember", "Add-OpsMemory"),
+        @("airecall", "Search-OpsMemory"),
+        @("memorymap", "Get-OpsMemoryMap"),
+        @("memoryread", "Read-OpsMemory"),
+        @("memoryfile", "Get-OpsMemoryFile"),
+        @("fullreport", "New-OpsReport"),
+        @("reportpath", "Get-OpsReportPath"),
+        @("coreindex", "Show-OpsDashboard"),
+        @("watchindex", "Watch-OpsDashboard"),
+        @("coremanual", "Show-OpsManual"),
+        @("corereload", "Update-OpsProfile"),
+        @("coreinit", "Initialize-OpsProfile"),
+        @("projview", "Get-OpsProject"),
+        @("projset", "Invoke-OpsProject"),
         @("openhere", "Invoke-ExplorerHere"),
-        @("corecache", "Invoke-HawkCachedData"),
-        @("sysdiag", "Get-HawkSystem"),
-        @("auditdiag", "Get-HawkAudit"),
-        @("netdiag", "Get-HawkNetwork"),
-        @("envdiag", "Get-HawkEnv"),
-        @("dailycheck", "Invoke-HawkDailyOps"),
-        @("sysreview", "Invoke-HawkSystemReview"),
-        @("secaudit", "Invoke-HawkSecurityAudit"),
-        @("netdiag", "Invoke-HawkNetworkDiagnostics"),
-        @("threathunt", "Invoke-HawkThreatHunt"),
-        @("changeaudit", "Invoke-HawkChangeAudit"),
-        @("compliancecheck", "Invoke-HawkComplianceCheck")
+        @("corecache", "Invoke-OpsCachedData"),
+        @("sysdiag", "Get-OpsSystem"),
+        @("auditdiag", "Get-OpsAudit"),
+        @("netdiag", "Get-OpsNetwork"),
+        @("envdiag", "Get-OpsEnv"),
+        @("dailycheck", "Invoke-OpsDailyOps"),
+        @("sysreview", "Invoke-OpsSystemReview"),
+        @("secaudit", "Invoke-OpsSecurityAudit"),
+        @("netdiag", "Invoke-OpsNetworkDiagnostics"),
+        @("threathunt", "Invoke-OpsThreatHunt"),
+        @("changeaudit", "Invoke-OpsChangeAudit"),
+        @("compliancecheck", "Invoke-OpsComplianceCheck")
     )
     foreach ($m in $mappings) {
         Set-Alias -Scope Global -Name $m[0] -Value $m[1] -Force
     }
 }
 
-function Initialize-HawkProfile {
+function Initialize-OpsProfile {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', 'Intentional user-facing config')]
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(
-        [string]$ProjectRoot = $script:HawkDefaultProjectRoot,
+        [string]$ProjectRoot = $script:OpsDefaultProjectRoot,
         [switch]$ShowDashboard,
         [switch]$SkipModules
     )
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    $global:HawkProjectRoot = $ProjectRoot
+    $global:OpsProjectRoot = $ProjectRoot
 
-    $isFirstRun = -not (Test-Path $script:HawkFirstRunSentinel)
-    if ($isFirstRun -and (Test-HawkInteractiveSession)) {
+    $isFirstRun = -not (Test-Path $script:OpsFirstRunSentinel)
+    if ($isFirstRun -and (Test-OpsInteractiveSession)) {
         $esc = [char]27
         $gray = "${esc}[38;5;246m"
         $mint = "${esc}[48;5;158m${esc}[38;5;16m"
         $reset = "${esc}[0m"
 
         Write-Host ""
-        Write-Host "  ${mint} POWERSHELL OPS : CORE ${reset} System provisioned. Version $($script:HawkVersion)."
+        Write-Host "  ${mint} POWERSHELL OPS : CORE ${reset} System provisioned. Version $($script:OpsVersion)."
         Write-Host "  ${gray}──────────────────────────────────────────────────────────${reset}"
         Write-Host "  Active environment: $ProjectRoot"
         Write-Host "  Architecture: 81 utilities | 7 workflows | Local AI"
         Write-Host ""
 
-        if (-not (Test-HawkNerdFont)) {
+        if (-not (Test-OpsNerdFont)) {
             Write-Host "  ${gray}Note: Graphical symbols inactive. Install a Nerd Font for full UI.${reset}"
         }
 
         Write-Host "  Type 'coreindex' for index. 'dailycheck' for status."
         Write-Host ""
         try {
-            $null = New-Item -Path $script:HawkFirstRunSentinel -ItemType File -Force -ErrorAction Stop
+            $null = New-Item -Path $script:OpsFirstRunSentinel -ItemType File -Force -ErrorAction Stop
         } catch { Write-Verbose "Could not write first-run sentinel: $($_.Exception.Message)" }
     }
 
     if (-not $SkipModules) {
-        Import-HawkPrerequisite -Quiet | Out-Null
+        Import-OpsPrerequisite -Quiet | Out-Null
     }
 
-    Set-HawkReadLine
-    Set-HawkAliases
-    Set-HawkPrompt
+    Set-OpsReadLine
+    Set-OpsAliases
+    Set-OpsPrompt
 
-    if ($ShowDashboard -and (Test-HawkInteractiveSession)) {
-        Show-HawkDashboard
+    if ($ShowDashboard -and (Test-OpsInteractiveSession)) {
+        Show-OpsDashboard
     }
 }
 
-function Update-HawkModule {
+function Update-OpsModule {
     [CmdletBinding(SupportsShouldProcess)]
     param()
     if ($PSCmdlet.ShouldProcess('PowershellOps', 'Pull latest and reload')) {
@@ -321,14 +321,14 @@ function Update-HawkModule {
     }
 }
 
-function Update-HawkProfile {
+function Update-OpsProfile {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param()
     if ($PSCmdlet.ShouldProcess('$PROFILE', 'Dot-source profile')) { . $PROFILE }
 }
 
-function Show-HawkManual {
-    $manualPath = Join-Path $script:HawkWorkspaceRoot 'MANUAL.md'
+function Show-OpsManual {
+    $manualPath = Join-Path $script:OpsWorkspaceRoot 'MANUAL.md'
     if (Test-Path $manualPath) {
         Write-Host "  Opening MANUAL.md..." -ForegroundColor Cyan
         Invoke-Item $manualPath
@@ -339,37 +339,38 @@ function Show-HawkManual {
 
 function Invoke-ExplorerHere { Start-Process explorer.exe -ArgumentList (Get-Location).Path }
 
-function Get-HawkProject {
+function Get-OpsProject {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', 'Intentional user-facing config')]
     [CmdletBinding()]
     param()
-    [PSCustomObject]@{ CurrentRoot = ($global:HawkProjectRoot ?? $script:HawkDefaultProjectRoot) }
+    [PSCustomObject]@{ CurrentRoot = ($global:OpsProjectRoot ?? $script:OpsDefaultProjectRoot) }
 }
 
-function Invoke-HawkProject {
+function Invoke-OpsProject {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', 'Intentional user-facing config')]
     [CmdletBinding(SupportsShouldProcess=$true)]
-    param([string]$Path = $script:HawkDefaultProjectRoot)
+    param([string]$Path = $script:OpsDefaultProjectRoot)
     if ($PSCmdlet.ShouldProcess("Project root '$Path'", 'Set project root')) {
-        $global:HawkProjectRoot = $Path
+        $global:OpsProjectRoot = $Path
     }
-    Get-HawkProject
+    Get-OpsProject
 }
 
-function Get-HawkEnv {
+function Get-OpsEnv {
     [CmdletBinding()]
     param([ValidateSet('Env','Path','App','Patch','Driver','Admin','Hypervisor','Power','License')][string]$Type = 'Env')
     switch ($Type) {
-        'Env'        { Get-HawkEnvMap }
-        'Path'       { Get-HawkPathAudit }
-        'App'        { Get-HawkApp }
-        'Patch'      { Get-HawkPatchHistory }
-        'Driver'     { Get-HawkDriverAudit }
-        'Admin'      { Get-HawkAdmin }
-        'Hypervisor' { Get-HawkHypervisor }
-        'Power'      { Get-HawkPower }
-        'License'    { Get-HawkLicense }
+        'Env'        { Get-OpsEnvMap }
+        'Path'       { Get-OpsPathAudit }
+        'App'        { Get-OpsApp }
+        'Patch'      { Get-OpsPatchHistory }
+        'Driver'     { Get-OpsDriverAudit }
+        'Admin'      { Get-OpsAdmin }
+        'Hypervisor' { Get-OpsHypervisor }
+        'Power'      { Get-OpsPower }
+        'License'    { Get-OpsLicense }
     }
 }
+
 
 

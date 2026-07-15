@@ -53,11 +53,12 @@ Copy-Item $sourceProfile $profilePath -Force
 
 # 5. Dependency Sync
 Write-Host "  ${esc}[38;5;158m󰚝${reset} Syncing icons and history tools..."
-pwsh -Command "Import-Module '$installDir\Modules\PowershellOps\PowershellOps.psd1' -Force; Install-HawkPrerequisite"
+pwsh -Command "Import-Module '$installDir\Modules\PowershellOps\PowershellOps.psd1' -Force; Install-OpsPrerequisite"
 
 # 6. Success
 Write-Host "`n  ${esc}[48;5;158m${esc}[38;5;16m ✅ ${reset} SUCCESS! PowershellOps is ready."
 Write-Host "  ${esc}[38;5;246m──────────────────────────────────────────${reset}"
 Write-Host "  Restart your terminal or type 'corereload' to begin."
 Write-Host "  Type 'coreindex' for your new home screen.`n" -ForegroundColor Cyan
+
 

@@ -5,7 +5,7 @@
 # ─────────────────────────────────────────────
 Reports/
 testResults.xml
-hawk-test-results.xml
+ops-test-results.xml
 
 # ─────────────────────────────────────────────
 # LOCAL CONTEXT & MEMORY
@@ -30,7 +30,7 @@ Scripts/InstalledScriptInfos/
 
 # ─────────────────────────────────────────────
 # THIRD-PARTY / VENDORED MODULES
-# These should be installed via Install-HawkPrerequisite
+# These should be installed via Install-OpsPrerequisite
 # ─────────────────────────────────────────────
 Modules/*/
 !Modules/PowershellOps/

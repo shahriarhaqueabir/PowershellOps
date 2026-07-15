@@ -1,6 +1,6 @@
 # ── PUBLIC: SYSTEM DIAGNOSTICS ─────────────────────────────────────────────
 
-function Get-HawkHealth {
+function Get-OpsHealth {
     $os = Get-CimInstance Win32_OperatingSystem
     $cpu = Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average
     $totalRam = [Math]::Round($os.TotalVisibleMemorySize / 1KB / 1024, 1)
@@ -13,8 +13,8 @@ function Get-HawkHealth {
     }
 }
 
-function Get-HawkSpec {
-    return Invoke-HawkCachedData -Key 'sys_specs' -ExpirySeconds 300 -ScriptBlock {
+function Get-OpsSpec {
+    return Invoke-OpsCachedData -Key 'sys_specs' -ExpirySeconds 300 -ScriptBlock {
         $cpu = Get-CimInstance Win32_Processor
         $comp = Get-CimInstance Win32_ComputerSystem
         $gpu = Get-CimInstance Win32_VideoController
@@ -28,8 +28,8 @@ function Get-HawkSpec {
     }
 }
 
-function Get-HawkUptime {
-    return Invoke-HawkCachedData -Key 'sys_uptime' -ExpirySeconds 10 -ScriptBlock {
+function Get-OpsUptime {
+    return Invoke-OpsCachedData -Key 'sys_uptime' -ExpirySeconds 10 -ScriptBlock {
         $boot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
         $span = (Get-Date) - $boot
         [PSCustomObject]@{
@@ -39,14 +39,14 @@ function Get-HawkUptime {
     }
 }
 
-function Get-HawkRamInfo {
-    return Invoke-HawkCachedData -Key 'sys_raminfo' -ExpirySeconds 600 -ScriptBlock {
+function Get-OpsRamInfo {
+    return Invoke-OpsCachedData -Key 'sys_raminfo' -ExpirySeconds 600 -ScriptBlock {
         Get-CimInstance Win32_PhysicalMemory | Select-Object BankLabel, @{N='CapacityGB';E={[Math]::Round($_.Capacity / 1GB, 1)}}, Speed, Manufacturer
     }
 }
 
-function Get-HawkBattery {
-    return Invoke-HawkCachedData -Key 'sys_battery' -ExpirySeconds 30 -ScriptBlock {
+function Get-OpsBattery {
+    return Invoke-OpsCachedData -Key 'sys_battery' -ExpirySeconds 30 -ScriptBlock {
         $bat = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
         if (-not $bat) {
             return [PSCustomObject]@{ "Status" = 'No battery hardware tracked' }
@@ -59,14 +59,14 @@ function Get-HawkBattery {
     }
 }
 
-function Get-HawkDisplay {
-    return Invoke-HawkCachedData -Key 'sys_displays' -ExpirySeconds 600 -ScriptBlock {
+function Get-OpsDisplay {
+    return Invoke-OpsCachedData -Key 'sys_displays' -ExpirySeconds 600 -ScriptBlock {
         Get-CimInstance Win32_VideoController | Select-Object Description, VideoModeDescription
     }
 }
 
-function Get-HawkDiskPressureAudit {
-    return Invoke-HawkCachedData -Key 'sys_diskpressure' -ExpirySeconds 30 -ScriptBlock {
+function Get-OpsDiskPressureAudit {
+    return Invoke-OpsCachedData -Key 'sys_diskpressure' -ExpirySeconds 30 -ScriptBlock {
         Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" | ForEach-Object {
             $sz = [Math]::Round($_.Size / 1GB, 1)
             $fr = [Math]::Round($_.FreeSpace / 1GB, 1)
@@ -80,8 +80,8 @@ function Get-HawkDiskPressureAudit {
     }
 }
 
-function Get-HawkResourceMap {
-    return Invoke-HawkCachedData -Key 'sys_resourcemap' -ExpirySeconds 5 -ScriptBlock {
+function Get-OpsResourceMap {
+    return Invoke-OpsCachedData -Key 'sys_resourcemap' -ExpirySeconds 5 -ScriptBlock {
         Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10 | ForEach-Object {
             [PSCustomObject]@{
                 ProcessName = $_.ProcessName
@@ -93,8 +93,8 @@ function Get-HawkResourceMap {
     }
 }
 
-function Get-HawkPortMap {
-    return Invoke-HawkCachedData -Key 'sys_portmap' -ExpirySeconds 10 -ScriptBlock {
+function Get-OpsPortMap {
+    return Invoke-OpsCachedData -Key 'sys_portmap' -ExpirySeconds 10 -ScriptBlock {
         if ($IsWindows) {
             if (Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue) {
                 $connections = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Sort-Object LocalPort, OwningProcess -Unique
@@ -120,26 +120,26 @@ function Get-HawkPortMap {
     }
 }
 
-function Get-HawkAdmin {
+function Get-OpsAdmin {
     try {
         Get-LocalGroupMember -Group 'S-1-5-32-544' -ErrorAction Stop | Select-Object Name, PrincipalSource, ObjectClass
     } catch {
         try {
             Get-LocalGroupMember -Group 'Administrators' -ErrorAction SilentlyContinue | Select-Object Name, PrincipalSource, ObjectClass
         } catch {
-            Write-Verbose "Get-HawkAdmin: Unable to query Administrators group: $($_.Exception.Message)"
+            Write-Verbose "Get-OpsAdmin: Unable to query Administrators group: $($_.Exception.Message)"
             [PSCustomObject]@{ Name = 'Error querying admin group'; PrincipalSource = ''; ObjectClass = '' }
         }
     }
 }
 
-function Get-HawkHypervisor {
+function Get-OpsHypervisor {
     $model = (Get-CimInstance Win32_ComputerSystem).Model
     $isVM = $model -match '(VirtualBox|VMware|Virtual Machine|Hyper-V|VirtualBox|QEMU|KVM|Xen)'
     [PSCustomObject]@{ Status = if ($isVM) { 'Virtual' } else { 'Physical' }; Model = $model }
 }
 
-function Get-HawkPower {
+function Get-OpsPower {
     try {
         $plan = Get-CimInstance -Namespace root\cimv2\power -ClassName Win32_PowerPlan -Filter "IsActive=True" -ErrorAction Stop
         [PSCustomObject]@{ Mode = $plan.ElementName }
@@ -148,14 +148,14 @@ function Get-HawkPower {
     }
 }
 
-function Get-HawkLicense {
+function Get-OpsLicense {
     $license = Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationId='55c92734-d682-4d71-983e-d6ec3f16059f'" -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $license) { return [PSCustomObject]@{ Status = 'N/A'; PartialProductKey = '' } }
     $status = @{1='Licensed';0='Unlicensed'}[$license.LicenseStatus]
     [PSCustomObject]@{ Status = $status; PartialProductKey = $license.PartialProductKey }
 }
 
-function Get-HawkTempCheck {
+function Get-OpsTempCheck {
     $totalLength = [long]0
     try {
         if (Test-Path $env:TEMP) {
@@ -170,7 +170,7 @@ function Get-HawkTempCheck {
     }
 }
 
-function Get-HawkClipCheck {
+function Get-OpsClipCheck {
     $len = try {
         if (Get-Command Get-Clipboard -ErrorAction SilentlyContinue) {
             (Get-Clipboard -Raw -ErrorAction SilentlyContinue).Length
@@ -179,20 +179,20 @@ function Get-HawkClipCheck {
     [PSCustomObject]@{ ClipboardLength = if ($null -eq $len) { 0 } else { $len } }
 }
 
-function Get-HawkDriveHealth {
+function Get-OpsDriveHealth {
     $result = Get-CimInstance -Namespace root\wmi -ClassName MSStorageDriver_FailurePredictStatus -ErrorAction SilentlyContinue |
         Select-Object InstanceName, PredictFailure
     if (-not $result) { return [PSCustomObject]@{ Status = 'No SMART data available'; PredictFailure = 'Unknown' } }
     $result
 }
 
-function Get-HawkDump {
+function Get-OpsDump {
     $result = Get-ChildItem "$env:windir\Minidump" -ErrorAction SilentlyContinue | Select-Object Name, Length, LastWriteTime
     if (-not $result) { return [PSCustomObject]@{ Status = 'No memory dumps found'; Path = "$env:windir\Minidump" } }
     $result
 }
 
-function Get-HawkBadFile {
+function Get-OpsBadFile {
     $results = @()
     $drives = Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty DeviceID
     if (-not $drives) { $drives = @('C:') }
@@ -217,7 +217,7 @@ function Get-HawkBadFile {
     }
 }
 
-function Get-HawkLink {
+function Get-OpsLink {
     $shell = New-Object -ComObject WScript.Shell -ErrorAction SilentlyContinue
     if (-not $shell) { return [PSCustomObject]@{ LinksProcessed = 0; Error = 'WScript.Shell COM unavailable' } }
     $links = Get-ChildItem *.lnk -ErrorAction SilentlyContinue
@@ -233,7 +233,7 @@ function Get-HawkLink {
     $results
 }
 
-function Get-HawkLock {
+function Get-OpsLock {
     param([string]$Path = (Get-Location).Path)
     $files = Get-ChildItem $Path -File -ErrorAction SilentlyContinue | Select-Object -First 50
     $results = foreach ($file in $files) {
@@ -248,7 +248,7 @@ function Get-HawkLock {
     $results
 }
 
-function Get-HawkSparseFile {
+function Get-OpsSparseFile {
     $result = Get-ChildItem -Recurse -ErrorAction SilentlyContinue |
         Where-Object { $_.Attributes -band [System.IO.FileAttributes]::SparseFile } |
         Select-Object FullName, Length | Select-Object -First 20
@@ -256,7 +256,7 @@ function Get-HawkSparseFile {
     $result
 }
 
-function Get-HawkCompressedDir {
+function Get-OpsCompressedDir {
     $result = Get-ChildItem -Recurse -Directory -ErrorAction SilentlyContinue |
         Where-Object { $_.Attributes -band [System.IO.FileAttributes]::Compressed } |
         Select-Object FullName, @{N='CompressedSizeKB';E={[Math]::Round(($_.GetFiles() | Measure-Object Length -Sum).Sum / 1KB, 1)}} |
@@ -265,7 +265,7 @@ function Get-HawkCompressedDir {
     $result
 }
 
-function Get-HawkApp {
+function Get-OpsApp {
     if (-not $IsWindows) { return [PSCustomObject]@{ Name = 'Cross-platform Environment'; Version = 'N/A' } }
     $regPaths = @(
         "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
@@ -279,37 +279,38 @@ function Get-HawkApp {
     } catch { @() }
 }
 
-function Get-HawkAppLocation { param([string]$App) Get-Command $App -ErrorAction SilentlyContinue | Select-Object Name, Source }
+function Get-OpsAppLocation { param([string]$App) Get-Command $App -ErrorAction SilentlyContinue | Select-Object Name, Source }
 
-function Get-HawkRecent {
+function Get-OpsRecent {
     $recentDir = Join-Path $env:APPDATA 'Microsoft\Windows\Recent'
     if (-not (Test-Path $recentDir)) { return @() }
     Get-ChildItem $recentDir -ErrorAction SilentlyContinue |
         Select-Object Name, LastWriteTime | Sort-Object LastWriteTime -Descending | Select-Object -First 5
 }
 
-function Get-HawkCert { Get-ChildItem Cert:\CurrentUser\My | Select-Object Subject, Thumbprint, NotAfter }
+function Get-OpsCert { Get-ChildItem Cert:\CurrentUser\My | Select-Object Subject, Thumbprint, NotAfter }
 
-function Get-HawkPatchHistory { Get-CimInstance Win32_QuickFixEngineering | Select-Object HotFixID, InstalledOn | Sort-Object InstalledOn -Descending | Select-Object -First 5 }
+function Get-OpsPatchHistory { Get-CimInstance Win32_QuickFixEngineering | Select-Object HotFixID, InstalledOn | Sort-Object InstalledOn -Descending | Select-Object -First 5 }
 
-function Get-HawkDriverAudit {
+function Get-OpsDriverAudit {
     Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyContinue |
         Where-Object { $_.DeviceName -and -not $_.IsSigned } |
         Select-Object DeviceName, DriverVersion, DriverDate | Select-Object -First 10
 }
 
-function Get-HawkSystem {
+function Get-OpsSystem {
     [CmdletBinding()]
     param([ValidateSet('Health','Spec','Uptime','Ram','Battery','Display','Disk','Resource','Port')][string]$Type = 'Health')
     switch ($Type) {
-        'Health'   { Get-HawkHealth }
-        'Spec'     { Get-HawkSpec }
-        'Uptime'   { Get-HawkUptime }
-        'Ram'      { Get-HawkRamInfo }
-        'Battery'  { Get-HawkBattery }
-        'Display'  { Get-HawkDisplay }
-        'Disk'     { Get-HawkDiskPressureAudit }
-        'Resource' { Get-HawkResourceMap }
-        'Port'     { Get-HawkPortMap }
+        'Health'   { Get-OpsHealth }
+        'Spec'     { Get-OpsSpec }
+        'Uptime'   { Get-OpsUptime }
+        'Ram'      { Get-OpsRamInfo }
+        'Battery'  { Get-OpsBattery }
+        'Display'  { Get-OpsDisplay }
+        'Disk'     { Get-OpsDiskPressureAudit }
+        'Resource' { Get-OpsResourceMap }
+        'Port'     { Get-OpsPortMap }
     }
 }
+

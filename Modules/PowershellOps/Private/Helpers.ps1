@@ -1,7 +1,7 @@
 # ── PRIVATE HELPERS ──────────────────────────────────────────────────────────
 
 # ── 1. CENTRALIZED PLATFORM DATA CACHE SUITE ──────────────────────────────
-function Invoke-HawkCachedData {
+function Invoke-OpsCachedData {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$Key,
@@ -10,20 +10,20 @@ function Invoke-HawkCachedData {
     )
     $now = Get-Date
 
-    if ($script:HawkCacheStore.ContainsKey($Key)) {
-        $entry = $script:HawkCacheStore[$Key]
+    if ($script:OpsCacheStore.ContainsKey($Key)) {
+        $entry = $script:OpsCacheStore[$Key]
         if (($now - $entry.Timestamp).TotalSeconds -lt $ExpirySeconds) {
             return $entry.Value
         }
     }
 
     $computedValue = &$ScriptBlock
-    $script:HawkCacheStore[$Key] = [hashtable]::Synchronized(@{ Timestamp = $now; Value = $computedValue })
+    $script:OpsCacheStore[$Key] = [hashtable]::Synchronized(@{ Timestamp = $now; Value = $computedValue })
     return $computedValue
 }
 
 # ── 2. TYPED ARCHITECTURE CORE MEMORY SCHEMA ─────────────────────────────────────
-class HawkMemoryEntry {
+class OpsMemoryEntry {
     [string] $Id
     [string] $Type
     [string[]]$Tags
@@ -33,9 +33,9 @@ class HawkMemoryEntry {
     [string] $Confidence
     [bool]   $Pinned
 
-    HawkMemoryEntry() {}
+    OpsMemoryEntry() {}
 
-    HawkMemoryEntry([hashtable]$map) {
+    OpsMemoryEntry([hashtable]$map) {
         $this.Id         = $map.Id
         $this.Type       = $map.Type
         $this.Tags       = $map.Tags
@@ -48,20 +48,20 @@ class HawkMemoryEntry {
 }
 
 # ── 3. BASELINE ENVIRONMENT LOGIC ────────────────────────────────────────────────
-function Write-HawkHeader {
+function Write-OpsHeader {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Accept parameter for API consistency')]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$Message,
         [ConsoleColor]$Color = 'Cyan'
     )
-    if (-not $script:HawkSuppressHeaders) {
+    if (-not $script:OpsSuppressHeaders) {
         Write-Host $Message -ForegroundColor $Color
     }
 }
 
-function Test-HawkInteractiveSession {
-    if ($env:HAWK_NO_DASH -or $env:CI) { return $false }
+function Test-OpsInteractiveSession {
+    if ($env:Ops_NO_DASH -or $env:CI) { return $false }
     try {
         return [Environment]::UserInteractive -and -not [Console]::IsOutputRedirected
     } catch {
@@ -69,7 +69,7 @@ function Test-HawkInteractiveSession {
     }
 }
 
-function Test-HawkNerdFont {
+function Test-OpsNerdFont {
     [CmdletBinding()]
     param()
     # Attempt to render a high-plane unicode character and check if it's potentially supported
@@ -83,13 +83,13 @@ function Test-HawkNerdFont {
     return $false
 }
 
-function Test-HawkModulePublisher {
+function Test-OpsModulePublisher {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$ModuleName
     )
 
-    $policy = $script:HawkTrustedModulePublishers[$ModuleName]
+    $policy = $script:OpsTrustedModulePublishers[$ModuleName]
     if (-not $policy) {
         return [PSCustomObject]@{
             Module          = $ModuleName
@@ -161,24 +161,24 @@ function Test-HawkModulePublisher {
     }
 }
 
-function Get-HawkSafeAliasName {
+function Get-OpsSafeAliasName {
     param([Parameter(Mandatory = $true)][string]$Name)
     return $Name
 }
 
-function Format-HawkMemoryId {
+function Format-OpsMemoryId {
     param()
     "mem_{0}_{1}" -f (Get-Date -Format 'yyyyMMdd_HHmmss'), ([Guid]::NewGuid().ToString('N').Substring(0, 6))
 }
 
-function Get-HawkMemorySearchTerm {
+function Get-OpsMemorySearchTerm {
     param([AllowNull()][string]$Text)
     if ([string]::IsNullOrWhiteSpace($Text)) { return @() }
     $stopWords = @('the','and','for','with','that','this','from','into','what','when','where','which','how','why','are','you','your','about','using','use')
     [regex]::Matches($Text.ToLowerInvariant(), '[a-z0-9][a-z0-9._-]{2,}') | ForEach-Object { $_.Value } | Where-Object { $_ -notin $stopWords } | Select-Object -Unique -First 18
 }
 
-function Format-HawkMemorySnippet {
+function Format-OpsMemorySnippet {
     param([AllowNull()][string]$Text, [int]$MaxLength = 220)
     if ($null -eq $Text) { return '' }
     $clean = (($Text -replace "(`r`n|`n|`r)", ' ') -replace '\s+', ' ').Trim()
@@ -186,7 +186,7 @@ function Format-HawkMemorySnippet {
     return $clean.Substring(0, $MaxLength - 1) + '…'
 }
 
-function Format-HawkMarkdownCell {
+function Format-OpsMarkdownCell {
     param([AllowNull()][string]$Text, [int]$MaxWidth = 0)
     if ($null -eq $Text) { $Text = '' }
     $clean = ($Text -replace "(`r`n|`n|`r)", ' ') -replace '\s+', ' '
@@ -195,7 +195,7 @@ function Format-HawkMarkdownCell {
     return $clean
 }
 
-function Format-HawkReportCell {
+function Format-OpsReportCell {
     param([AllowNull()][string]$Text, [int]$Width)
     if ($Width -le 0) { return '' }; if ($null -eq $Text) { $Text = '' }
     $clean = (($Text -replace "(`r`n|`n|`r)", ' ') -replace '\s+', ' ').Trim()
@@ -203,9 +203,10 @@ function Format-HawkReportCell {
     return $clean.PadRight($Width)
 }
 
-function Get-HawkReportPath {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', 'Internal helper called from New-HawkReport which has ShouldProcess')]
+function Get-OpsReportPath {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', 'Internal helper called from New-OpsReport which has ShouldProcess')]
     param([string]$Ext = 'md')
-    if (-not (Test-Path $script:HawkReportRoot)) { $null = New-Item -Path $script:HawkReportRoot -ItemType Directory -Force }
-    return Join-Path $script:HawkReportRoot ("hawkreport-{0}.{1}" -f (Get-Date -Format 'yyyyMMdd-HHmmss'), $Ext)
+    if (-not (Test-Path $script:OpsReportRoot)) { $null = New-Item -Path $script:OpsReportRoot -ItemType Directory -Force }
+    return Join-Path $script:OpsReportRoot ("Opsreport-{0}.{1}" -f (Get-Date -Format 'yyyyMMdd-HHmmss'), $Ext)
 }
+

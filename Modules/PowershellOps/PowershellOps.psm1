@@ -3,32 +3,32 @@
 # ==============================================================================
 # Private helpers + Public functions are dot-sourced from Private/*.ps1 and Public/*.ps1
 
-$script:HawkVersion = '11.3'
-$script:HawkAppName = 'PowershellOps'
-$script:HawkVibe    = 'Modern'
-$script:HawkRequiredModules = @('Terminal-Icons', 'PSReadLine', 'PSTree')
-$script:HawkTrustedModulePublishers = @{
+$script:OpsVersion = '11.3'
+$script:OpsAppName = 'PowershellOps'
+$script:OpsVibe    = 'Modern'
+$script:OpsRequiredModules = @('Terminal-Icons', 'PSReadLine', 'PSTree')
+$script:OpsTrustedModulePublishers = @{
     'Terminal-Icons' = @{ Author = 'Brandon Olin'; CompanyName = 'devblackops' }
     'PSReadLine'     = @{ Author = 'Microsoft Corporation'; CompanyName = 'PowerShellTeam' }
     'PSTree'         = @{ Author = 'Santiago Squarzon'; CompanyName = 'santisq' }
 }
-$script:HawkWorkspaceRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$script:HawkDefaultProjectRoot = if ($env:HAWK_PROJECT_ROOT) { $env:HAWK_PROJECT_ROOT } elseif ($script:HawkWorkspaceRoot) { $script:HawkWorkspaceRoot } elseif ($PROFILE -and $PROFILE.CurrentUserCurrentHost) { Split-Path -Parent $PROFILE.CurrentUserCurrentHost } else { Join-Path $HOME 'Projects' }
-$script:HawkSuppressHeaders = $false
-$script:HawkSensitiveNamePattern = '(?i)(secret|token|password|passwd|pwd|credential|connection.?string|sas|bearer|api.?key|private.?key)'
-$script:HawkLastFirewallFilterError = $null
-$script:HawkReportRoot = Join-Path $script:HawkWorkspaceRoot 'Reports'
-$script:HawkMemoryRoot = Join-Path $script:HawkWorkspaceRoot 'Memory'
-$script:HawkMemoryFile = Join-Path $script:HawkMemoryRoot 'ops-memory.jsonl'
-$script:HawkFirstRunSentinel = Join-Path $script:HawkWorkspaceRoot '.hawk_first_run'
+$script:OpsWorkspaceRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$script:OpsDefaultProjectRoot = if ($env:Ops_PROJECT_ROOT) { $env:Ops_PROJECT_ROOT } elseif ($script:OpsWorkspaceRoot) { $script:OpsWorkspaceRoot } elseif ($PROFILE -and $PROFILE.CurrentUserCurrentHost) { Split-Path -Parent $PROFILE.CurrentUserCurrentHost } else { Join-Path $HOME 'Projects' }
+$script:OpsSuppressHeaders = $false
+$script:OpsSensitiveNamePattern = '(?i)(secret|token|password|passwd|pwd|credential|connection.?string|sas|bearer|api.?key|private.?key)'
+$script:OpsLastFirewallFilterError = $null
+$script:OpsReportRoot = Join-Path $script:OpsWorkspaceRoot 'Reports'
+$script:OpsMemoryRoot = Join-Path $script:OpsWorkspaceRoot 'Memory'
+$script:OpsMemoryFile = Join-Path $script:OpsMemoryRoot 'ops-memory.jsonl'
+$script:OpsFirstRunSentinel = Join-Path $script:OpsWorkspaceRoot '.Ops_first_run'
 
 # Initialize thread-safe data store cache allocation
-if (-not $script:HawkCacheStore) {
-    $script:HawkCacheStore = [hashtable]::Synchronized(@{})
+if (-not $script:OpsCacheStore) {
+    $script:OpsCacheStore = [hashtable]::Synchronized(@{})
 }
 
 # Initialize search rate-limiting tracker
-$script:HawkLastSearchTime = $null
+$script:OpsLastSearchTime = $null
 
 # -- DOT-SOURCE PRIVATE HELPERS ------------------------------------------------
 $privatePath = Join-Path $PSScriptRoot 'Private'
@@ -40,108 +40,109 @@ Get-ChildItem "$publicPath\*.ps1" -ErrorAction SilentlyContinue | ForEach-Object
 
 # -- MODULE EXPORT -------------------------------------------------------------
 Export-ModuleMember -Function @(
-    'Add-HawkMemory',
-    'Build-HawkAIContextPacket',
-    'Build-HawkAIMemoryContext',
-    'ConvertTo-HawkMarkdownTable',
-    'ConvertTo-HawkReportMarkdown',
-    'Format-HawkMarkdownCell',
-    'Format-HawkMemoryId',
-    'Format-HawkMemorySnippet',
-    'Format-HawkReportCell',
-    'Get-HawkAdmin',
-    'Get-HawkAIDataProfile',
-    'Get-HawkAIIntent',
-    'Get-HawkAIStatus',
-    'Get-HawkApp',
-    'Get-HawkAppLocation',
-    'Get-HawkAudit',
-    'Get-HawkBadFile',
-    'Get-HawkBattery',
-    'Get-HawkBootMap',
-    'Get-HawkCert',
-    'Get-HawkClipCheck',
-    'Get-HawkCompressedDir',
-    'Get-HawkDiskPressureAudit',
-    'Get-HawkDisplay',
-    'Get-HawkDnsBench',
-    'Get-HawkDnsCache',
-    'Get-HawkDriveHealth',
-    'Get-HawkDriverAudit',
-    'Get-HawkDump',
-    'Get-HawkEnv',
-    'Get-HawkEnvMap',
-    'Get-HawkEstablished',
-    'Get-HawkEventStormAudit',
-    'Get-HawkFirewallAudit',
-    'Get-HawkGhostPortAudit',
-    'Get-HawkHealth',
-    'Get-HawkHostsCheck',
-    'Get-HawkHypervisor',
-    'Get-HawkLicense',
-    'Get-HawkLink',
-    'Get-HawkLinkSpeed',
-    'Get-HawkLock',
-    'Get-HawkMemoryFile',
-    'Get-HawkMemoryMap',
-    'Get-HawkMemorySearchTerm',
-    'Get-HawkNetCheck',
-    'Get-HawkNetwork',
-    'Get-HawkNetworkTriage',
-    'Get-HawkPatchHistory',
-    'Get-HawkPathAudit',
-    'Get-HawkPortMap',
-    'Get-HawkPower',
-    'Get-HawkProject',
-    'Get-HawkPromptGitSegment',
-    'Get-HawkPromptText',
-    'Get-HawkRamInfo',
-    'Get-HawkRecent',
-    'Get-HawkReportPath',
-    'Get-HawkResourceMap',
-    'Get-HawkScheduledTaskRiskAudit',
-    'Get-HawkShare',
-    'Get-HawkShield',
-    'Get-HawkSourceQualityScore',
-    'Get-HawkSparseFile',
-    'Get-HawkSpec',
-    'Get-HawkSuspiciousProcessAudit',
-    'Get-HawkSystem',
-    'Get-HawkTempCheck',
-    'Get-HawkUptime',
-    'Get-HawkWifi',
-    'Import-HawkPrerequisite',
-    'Initialize-HawkProfile',
-    'Install-HawkPrerequisite',
+    'Add-OpsMemory',
+    'Build-OpsAIContextPacket',
+    'Build-OpsAIMemoryContext',
+    'ConvertTo-OpsMarkdownTable',
+    'ConvertTo-OpsReportMarkdown',
+    'Format-OpsMarkdownCell',
+    'Format-OpsMemoryId',
+    'Format-OpsMemorySnippet',
+    'Format-OpsReportCell',
+    'Get-OpsAdmin',
+    'Get-OpsAIDataProfile',
+    'Get-OpsAIIntent',
+    'Get-OpsAIStatus',
+    'Get-OpsApp',
+    'Get-OpsAppLocation',
+    'Get-OpsAudit',
+    'Get-OpsBadFile',
+    'Get-OpsBattery',
+    'Get-OpsBootMap',
+    'Get-OpsCert',
+    'Get-OpsClipCheck',
+    'Get-OpsCompressedDir',
+    'Get-OpsDiskPressureAudit',
+    'Get-OpsDisplay',
+    'Get-OpsDnsBench',
+    'Get-OpsDnsCache',
+    'Get-OpsDriveHealth',
+    'Get-OpsDriverAudit',
+    'Get-OpsDump',
+    'Get-OpsEnv',
+    'Get-OpsEnvMap',
+    'Get-OpsEstablished',
+    'Get-OpsEventStormAudit',
+    'Get-OpsFirewallAudit',
+    'Get-OpsGhostPortAudit',
+    'Get-OpsHealth',
+    'Get-OpsHostsCheck',
+    'Get-OpsHypervisor',
+    'Get-OpsLicense',
+    'Get-OpsLink',
+    'Get-OpsLinkSpeed',
+    'Get-OpsLock',
+    'Get-OpsMemoryFile',
+    'Get-OpsMemoryMap',
+    'Get-OpsMemorySearchTerm',
+    'Get-OpsNetCheck',
+    'Get-OpsNetwork',
+    'Get-OpsNetworkTriage',
+    'Get-OpsPatchHistory',
+    'Get-OpsPathAudit',
+    'Get-OpsPortMap',
+    'Get-OpsPower',
+    'Get-OpsProject',
+    'Get-OpsPromptGitSegment',
+    'Get-OpsPromptText',
+    'Get-OpsRamInfo',
+    'Get-OpsRecent',
+    'Get-OpsReportPath',
+    'Get-OpsResourceMap',
+    'Get-OpsScheduledTaskRiskAudit',
+    'Get-OpsShare',
+    'Get-OpsShield',
+    'Get-OpsSourceQualityScore',
+    'Get-OpsSparseFile',
+    'Get-OpsSpec',
+    'Get-OpsSuspiciousProcessAudit',
+    'Get-OpsSystem',
+    'Get-OpsTempCheck',
+    'Get-OpsUptime',
+    'Get-OpsWifi',
+    'Import-OpsPrerequisite',
+    'Initialize-OpsProfile',
+    'Install-OpsPrerequisite',
     'Invoke-ExplorerHere',
-    'Invoke-HawkAI',
-    'Invoke-HawkCachedData',
-    'Invoke-HawkChangeAudit',
-    'Invoke-HawkComplianceCheck',
-    'Invoke-HawkDailyOps',
-    'Invoke-HawkNetworkDiagnostics',
-    'Invoke-HawkProject',
-    'Invoke-HawkSearch',
-    'Invoke-HawkSecurityAudit',
-    'Invoke-HawkSystemReview',
-    'Invoke-HawkThreatHunt',
-    'New-HawkReport',
-    'Protect-HawkSensitiveText',
-    'Read-HawkMemory',
-    'Resolve-HawkDuckDuckGoHref',
-    'Search-HawkMemory',
-    'Set-HawkAliases',
-    'Set-HawkPrompt',
-    'Set-HawkReadLine',
-    'Show-HawkDashboard',
-    'Show-HawkManual',
-    'Test-HawkInteractiveSession',
-    'Test-HawkModulePublisher',
-    'Test-HawkPromptInjection',
-    'Update-HawkModule',
-    'Update-HawkProfile',
-    'Watch-HawkDashboard',
-    'Write-HawkHeader',
-    'Write-HawkReportTable'
+    'Invoke-OpsAI',
+    'Invoke-OpsCachedData',
+    'Invoke-OpsChangeAudit',
+    'Invoke-OpsComplianceCheck',
+    'Invoke-OpsDailyOps',
+    'Invoke-OpsNetworkDiagnostics',
+    'Invoke-OpsProject',
+    'Invoke-OpsSearch',
+    'Invoke-OpsSecurityAudit',
+    'Invoke-OpsSystemReview',
+    'Invoke-OpsThreatHunt',
+    'New-OpsReport',
+    'Protect-OpsSensitiveText',
+    'Read-OpsMemory',
+    'Resolve-OpsDuckDuckGoHref',
+    'Search-OpsMemory',
+    'Set-OpsAliases',
+    'Set-OpsPrompt',
+    'Set-OpsReadLine',
+    'Show-OpsDashboard',
+    'Show-OpsManual',
+    'Test-OpsInteractiveSession',
+    'Test-OpsModulePublisher',
+    'Test-OpsPromptInjection',
+    'Update-OpsModule',
+    'Update-OpsProfile',
+    'Watch-OpsDashboard',
+    'Write-OpsHeader',
+    'Write-OpsReportTable'
 ) -Alias *
+
 

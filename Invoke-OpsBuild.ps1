@@ -19,10 +19,10 @@ Write-Host ""
 $exitCode = 0
 
 $acceptedAnalyzerRules = @(
-    'PSAvoidGlobalVars',       # $global:HawkProjectRoot & $global:HawkLastSearchTime — intentional user-facing config
+    'PSAvoidGlobalVars',       # $global:OpsProjectRoot & $global:OpsLastSearchTime — intentional user-facing config
     'PSAvoidUsingWriteHost',   # Dashboard UI, AI streaming, Report tables — deliberate console rendering
-    'PSReviewUnusedParameter', # $Color in Write-HawkHeader, $Reset in Get-HawkPromptGitSegment — API consistency & closure usage
-    'PSUseSingularNouns'       # Set-HawkAliases — intentionally manages multiple aliases
+    'PSReviewUnusedParameter', # $Color in Write-OpsHeader, $Reset in Get-OpsPromptGitSegment — API consistency & closure usage
+    'PSUseSingularNouns'       # Set-OpsAliases — intentionally manages multiple aliases
 )
 
 if (-not $SkipAnalyzer) {
@@ -55,7 +55,7 @@ if (-not $SkipTests) {
         $config.TestResult.Enabled = $true
         $config.TestResult.OutputFormat = 'NUnitXml'
         if ($ReportPath) {
-            $config.TestResult.OutputPath = Join-Path $ReportPath "hawk-test-results.xml"
+            $config.TestResult.OutputPath = Join-Path $ReportPath "Ops-test-results.xml"
         }
         $config.Output.Verbosity = 'Detailed'
         $result = Invoke-Pester -Configuration $config
@@ -77,4 +77,5 @@ if ($exitCode -eq 0) {
 }
 
 exit $exitCode
+
 
