@@ -9,9 +9,11 @@ $moduleManifest = Join-Path $projectRoot "Modules\HawkwardHybrid\HawkwardHybrid.
 $moduleFile = Join-Path $projectRoot "Modules\HawkwardHybrid\HawkwardHybrid.psm1"
 $testFile = Join-Path $projectRoot "Modules\HawkwardHybrid\Tests\HawkwardHybrid.Tests.ps1"
 
-Write-Host "╔═══════════════════════════════════════════════════╗" -ForegroundColor Magenta
-Write-Host "║      HAWKWARD HYBRID BUILD v11.3               ║" -ForegroundColor Cyan
-Write-Host "╚═══════════════════════════════════════════════════╝" -ForegroundColor Magenta
+$esc = [char]27
+$reset = "${esc}[0m"
+Write-Host "${esc}[38;5;183m╔═══════════════════════════════════════════════════╗${reset}"
+Write-Host "${esc}[38;5;183m║      ${esc}[38;5;158mPOWERSHELL OPS BUILD v11.3${reset}${esc}[38;5;183m                   ║${reset}"
+Write-Host "${esc}[38;5;183m╚═══════════════════════════════════════════════════╝${reset}"
 Write-Host ""
 
 $exitCode = 0

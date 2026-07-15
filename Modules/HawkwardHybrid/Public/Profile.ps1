@@ -92,10 +92,10 @@ function Get-HawkPromptText {
     $esc = [char]27
     $reset = "${esc}[0m"
     $path = (Get-Location).Path -replace "^$([Regex]::Escape([Environment]::GetFolderPath('UserProfile')))", '~'
-    $pathSegment = "${esc}[48;5;239m${esc}[38;5;255m 󰉋 $path ${reset}"
-    $timeSegment = "${esc}[48;5;24m${esc}[38;5;117m 󱑎 $([System.DateTime]::Now.ToString('HH:mm:ss')) ${reset}"
+    $pathSegment = "${esc}[48;5;158m${esc}[38;5;16m 󰉋 $path ${reset}"
+    $timeSegment = "${esc}[48;5;244m${esc}[38;5;255m 󱑎 $([System.DateTime]::Now.ToString('HH:mm:ss')) ${reset}"
     $gitSegment = Get-HawkPromptGitSegment -Reset $reset
-    $statusColor = if ($LastSuccess) { "${esc}[38;5;121m" } else { "${esc}[38;5;196m" }
+    $statusColor = if ($LastSuccess) { "${esc}[38;5;158m" } else { "${esc}[38;5;217m" }
     return "`n${pathSegment}${timeSegment}${gitSegment}`n${statusColor}󱞩 ${reset} "
 }
 
@@ -156,90 +156,90 @@ function Set-HawkAliases {
     param()
     if (-not $PSCmdlet.ShouldProcess('Global aliases', 'Set all Hawk aliases')) { return }
     $mappings = @(
-        @("health", "Get-HawkHealth"),
-        @("spec", "Get-HawkSpec"),
-        @("uptime", "Get-HawkUptime"),
-        @("ram", "Get-HawkRamInfo"),
-        @("battery", "Get-HawkBattery"),
-        @("display", "Get-HawkDisplay"),
-        @("powerplan", "Get-HawkPower"),
-        @("hyperv", "Get-HawkHypervisor"),
-        @("license", "Get-HawkLicense"),
-        @("disk", "Get-HawkDiskPressureAudit"),
-        @("temp", "Get-HawkTempCheck"),
-        @("clip", "Get-HawkClipCheck"),
-        @("smarts", "Get-HawkDriveHealth"),
-        @("res", "Get-HawkResourceMap"),
-        @("port", "Get-HawkPortMap"),
-        @("admin", "Get-HawkAdmin"),
-        @("shield", "Get-HawkShield"),
-        @("fw", "Get-HawkFirewallAudit"),
-        @("boot", "Get-HawkBootMap"),
-        @("schedtask", "Get-HawkScheduledTaskRiskAudit"),
-        @("ghost", "Get-HawkGhostPortAudit"),
-        @("sus", "Get-HawkSuspiciousProcessAudit"),
-        @("storm", "Get-HawkEventStormAudit"),
-        @("cert", "Get-HawkCert"),
-        @("dump", "Get-HawkDump"),
-        @("badfile", "Get-HawkBadFile"),
-        @("link", "Get-HawkLink"),
-        @("lock", "Get-HawkLock"),
-        @("sparse", "Get-HawkSparseFile"),
-        @("compress", "Get-HawkCompressedDir"),
-        @("patch", "Get-HawkPatchHistory"),
-        @("driver", "Get-HawkDriverAudit"),
-        @("recent", "Get-HawkRecent"),
-        @("secretredact", "Protect-HawkSensitiveText"),
-        @("ping", "Get-HawkNetCheck"),
-        @("wifi", "Get-HawkWifi"),
-        @("established", "Get-HawkEstablished"),
-        @("dns", "Get-HawkDnsBench"),
-        @("linkspeed", "Get-HawkLinkSpeed"),
-        @("smb", "Get-HawkShare"),
-        @("hosts", "Get-HawkHostsCheck"),
-        @("dnscache", "Get-HawkDnsCache"),
+        @("corehealth", "Get-HawkHealth"),
+        @("sysspec", "Get-HawkSpec"),
+        @("sysuptime", "Get-HawkUptime"),
+        @("ramstats", "Get-HawkRamInfo"),
+        @("battstatus", "Get-HawkBattery"),
+        @("gpuview", "Get-HawkDisplay"),
+        @("powertriage", "Get-HawkPower"),
+        @("vmcheck", "Get-HawkHypervisor"),
+        @("liccheck", "Get-HawkLicense"),
+        @("diskpressure", "Get-HawkDiskPressureAudit"),
+        @("tempcheck", "Get-HawkTempCheck"),
+        @("clipcheck", "Get-HawkClipCheck"),
+        @("smartstatus", "Get-HawkDriveHealth"),
+        @("resourcemap", "Get-HawkResourceMap"),
+        @("portmap", "Get-HawkPortMap"),
+        @("adminaudit", "Get-HawkAdmin"),
+        @("shieldstatus", "Get-HawkShield"),
+        @("fwcheck", "Get-HawkFirewallAudit"),
+        @("bootmap", "Get-HawkBootMap"),
+        @("taskrisk", "Get-HawkScheduledTaskRiskAudit"),
+        @("ghostports", "Get-HawkGhostPortAudit"),
+        @("susprocs", "Get-HawkSuspiciousProcessAudit"),
+        @("eventstorm", "Get-HawkEventStormAudit"),
+        @("certaudit", "Get-HawkCert"),
+        @("dumpmap", "Get-HawkDump"),
+        @("filecheck", "Get-HawkBadFile"),
+        @("shortcutcheck", "Get-HawkLink"),
+        @("lockcheck", "Get-HawkLock"),
+        @("sparsecheck", "Get-HawkSparseFile"),
+        @("compresscheck", "Get-HawkCompressedDir"),
+        @("patchhistory", "Get-HawkPatchHistory"),
+        @("driveraudit", "Get-HawkDriverAudit"),
+        @("recentfiles", "Get-HawkRecent"),
+        @("secretmask", "Protect-HawkSensitiveText"),
+        @("netping", "Get-HawkNetCheck"),
+        @("wificheck", "Get-HawkWifi"),
+        @("peerscheck", "Get-HawkEstablished"),
+        @("dnsbench", "Get-HawkDnsBench"),
+        @("netspeed", "Get-HawkLinkSpeed"),
+        @("smbshares", "Get-HawkShare"),
+        @("hostscheck", "Get-HawkHostsCheck"),
+        @("dnsmap", "Get-HawkDnsCache"),
         @("nettriage", "Get-HawkNetworkTriage"),
         @("envmap", "Get-HawkEnvMap"),
-        @("path", "Get-HawkPathAudit"),
-        @("app", "Get-HawkApp"),
-        @("where", "Get-HawkAppLocation"),
-        @("ai", "Invoke-HawkAI"),
-        @("ggl", "Invoke-HawkSearch"),
+        @("pathaudit", "Get-HawkPathAudit"),
+        @("applist", "Get-HawkApp"),
+        @("apploc", "Get-HawkAppLocation"),
+        @("askai", "Invoke-HawkAI"),
+        @("websearch", "Invoke-HawkSearch"),
         @("aistatus", "Get-HawkAIStatus"),
-        @("intent", "Get-HawkAIIntent"),
+        @("aiintent", "Get-HawkAIIntent"),
         @("aiprofile", "Get-HawkAIDataProfile"),
-        @("quality", "Get-HawkSourceQualityScore"),
-        @("injecttest", "Test-HawkPromptInjection"),
-        @("remember", "Add-HawkMemory"),
-        @("recall", "Search-HawkMemory"),
-        @("memmap", "Get-HawkMemoryMap"),
-        @("readmem", "Read-HawkMemory"),
-        @("memfile", "Get-HawkMemoryFile"),
-        @("hawkreport", "New-HawkReport"),
+        @("sourcequality", "Get-HawkSourceQualityScore"),
+        @("safetycheck", "Test-HawkPromptInjection"),
+        @("airemember", "Add-HawkMemory"),
+        @("airecall", "Search-HawkMemory"),
+        @("memorymap", "Get-HawkMemoryMap"),
+        @("memoryread", "Read-HawkMemory"),
+        @("memoryfile", "Get-HawkMemoryFile"),
+        @("fullreport", "New-HawkReport"),
         @("reportpath", "Get-HawkReportPath"),
-        @("dash", "Show-HawkDashboard"),
-        @("watch", "Watch-HawkDashboard"),
-        @("hawkman", "Show-HawkManual"),
-        @("reload", "Update-HawkProfile"),
-        @("init", "Initialize-HawkProfile"),
-        @("proj", "Get-HawkProject"),
+        @("coreindex", "Show-HawkDashboard"),
+        @("watchindex", "Watch-HawkDashboard"),
+        @("coremanual", "Show-HawkManual"),
+        @("corereload", "Update-HawkProfile"),
+        @("coreinit", "Initialize-HawkProfile"),
+        @("projview", "Get-HawkProject"),
         @("projset", "Invoke-HawkProject"),
-        @("explorer", "Invoke-ExplorerHere"),
-        @("cached", "Invoke-HawkCachedData"),
-        @("sys", "Get-HawkSystem"),
-        @("audit", "Get-HawkAudit"),
-        @("net", "Get-HawkNetwork"),
-        @("env", "Get-HawkEnv"),
-        @("dailyops", "Invoke-HawkDailyOps"),
+        @("openhere", "Invoke-ExplorerHere"),
+        @("corecache", "Invoke-HawkCachedData"),
+        @("sysdiag", "Get-HawkSystem"),
+        @("auditdiag", "Get-HawkAudit"),
+        @("netdiag", "Get-HawkNetwork"),
+        @("envdiag", "Get-HawkEnv"),
+        @("dailycheck", "Invoke-HawkDailyOps"),
         @("sysreview", "Invoke-HawkSystemReview"),
         @("secaudit", "Invoke-HawkSecurityAudit"),
         @("netdiag", "Invoke-HawkNetworkDiagnostics"),
-        @("threat", "Invoke-HawkThreatHunt"),
-        @("change", "Invoke-HawkChangeAudit"),
-        @("compliance", "Invoke-HawkComplianceCheck")
+        @("threathunt", "Invoke-HawkThreatHunt"),
+        @("changeaudit", "Invoke-HawkChangeAudit"),
+        @("compliancecheck", "Invoke-HawkComplianceCheck")
     )
     foreach ($m in $mappings) {
-        Set-Alias -Scope Global -Name (Get-HawkSafeAliasName -Name $m[0]) -Value $m[1] -Force
+        Set-Alias -Scope Global -Name $m[0] -Value $m[1] -Force
     }
 }
 
@@ -256,19 +256,24 @@ function Initialize-HawkProfile {
 
     $isFirstRun = -not (Test-Path $script:HawkFirstRunSentinel)
     if ($isFirstRun -and (Test-HawkInteractiveSession)) {
-        Write-Host ''
-        Write-Host '  ⚠  HAWKWARD HYBRID — First Run Notice' -ForegroundColor Yellow
-        Write-Host '  ─────────────────────────────────────' -ForegroundColor DarkGray
-        Write-Host '  This profile loader registers:' -ForegroundColor White
-        Write-Host '    • 81 hawk-* aliases (all prefixed, no shadowing of system cmdlets)' -ForegroundColor Gray
-        Write-Host '    • A custom prompt with git status segment' -ForegroundColor Gray
-        Write-Host '    • PSReadLine predictive IntelliSense configuration' -ForegroundColor Gray
-        Write-Host ''
-        Write-Host '  To remove aliases at any time:' -ForegroundColor White
-        Write-Host '    Get-Alias | Where-Object { $_.Name -like "hawk-*" } | Remove-Item' -ForegroundColor Gray
-        Write-Host ''
-        Write-Host '  Set $env:HAWK_NO_DASH=1 to suppress the automatic dashboard.' -ForegroundColor White
-        Write-Host ''
+        $esc = [char]27
+        $gray = "${esc}[38;5;246m"
+        $mint = "${esc}[48;5;158m${esc}[38;5;16m"
+        $reset = "${esc}[0m"
+
+        Write-Host ""
+        Write-Host "  ${mint} POWERSHELL OPS : CORE ${reset} System provisioned. Version $($script:HawkVersion)."
+        Write-Host "  ${gray}──────────────────────────────────────────────────────────${reset}"
+        Write-Host "  Active environment: $ProjectRoot"
+        Write-Host "  Architecture: 81 utilities | 7 workflows | Local AI"
+        Write-Host ""
+
+        if (-not (Test-HawkNerdFont)) {
+            Write-Host "  ${gray}Note: Graphical symbols inactive. Install a Nerd Font for full UI.${reset}"
+        }
+
+        Write-Host "  Type 'coreindex' for index. 'dailycheck' for status."
+        Write-Host ""
         try {
             $null = New-Item -Path $script:HawkFirstRunSentinel -ItemType File -Force -ErrorAction Stop
         } catch { Write-Verbose "Could not write first-run sentinel: $($_.Exception.Message)" }

@@ -8,23 +8,23 @@
 function Write-HawkWorkflowBanner {
     [CmdletBinding()]
     param([string]$Title, [string]$Subtitle)
-    $rule = '═' * 70
-    Write-Host "  ╔$rule╗" -ForegroundColor DarkGray
-    Write-Host '  ║ ' -NoNewline -ForegroundColor DarkGray
-    Write-Host "🦅 $Title".PadRight(68) -ForegroundColor Cyan -NoNewline
-    Write-Host ' ║' -ForegroundColor DarkGray
+    $rule = '─' * 70
+    Write-Host "  ┌$rule┐" -ForegroundColor DarkGray
+    Write-Host '  │ ' -NoNewline -ForegroundColor DarkGray
+    Write-Host "$Title".PadRight(68) -ForegroundColor Cyan -NoNewline
+    Write-Host ' │' -ForegroundColor DarkGray
     if ($Subtitle) {
-        Write-Host '  ║ ' -NoNewline -ForegroundColor DarkGray
+        Write-Host '  │ ' -NoNewline -ForegroundColor DarkGray
         Write-Host $Subtitle.PadRight(68) -ForegroundColor DarkGray -NoNewline
-        Write-Host ' ║' -ForegroundColor DarkGray
+        Write-Host ' │' -ForegroundColor DarkGray
     }
-    Write-Host "  ╚$rule╝" -ForegroundColor DarkGray
+    Write-Host "  └$rule┘" -ForegroundColor DarkGray
 }
 
 function Write-HawkWorkflowSection {
     [CmdletBinding()]
     param([string]$Name, [string]$Color = 'Yellow')
-    Write-Host "`n  ── $Name ─$('─' * [Math]::Max(1, (58 - $Name.Length)))" -ForegroundColor $Color
+    Write-Host "`n  [ $Name ] $('─' * [Math]::Max(1, (58 - $Name.Length)))" -ForegroundColor $Color
 }
 
 function Write-HawkRecommendations {
@@ -42,7 +42,7 @@ function Write-HawkRecommendations {
 function Invoke-HawkDailyOps {
     [CmdletBinding()]
     param()
-    Write-HawkWorkflowBanner -Title 'DAILY OPERATIONS SCAN' -Subtitle "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | $(hostname)"
+    Write-HawkWorkflowBanner -Title 'STATUS : SUMMARY' -Subtitle "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | $(hostname)"
 
     $health   = Invoke-HawkCachedData -Key 'wflow_health' -ExpirySeconds 10  -ScriptBlock { Get-HawkHealth }
     $uptime   = Invoke-HawkCachedData -Key 'wflow_uptime' -ExpirySeconds 10  -ScriptBlock { Get-HawkUptime }
@@ -152,7 +152,7 @@ function Invoke-HawkSystemReview {
 function Invoke-HawkSecurityAudit {
     [CmdletBinding()]
     param()
-    Write-HawkWorkflowBanner -Title 'SECURITY POSTURE AUDIT' -Subtitle "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | $(hostname)"
+    Write-HawkWorkflowBanner -Title 'SUBSYSTEM : SECURITY' -Subtitle "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | $(hostname)"
 
     $firewall  = Invoke-HawkCachedData -Key 'wflow_fw'       -ExpirySeconds 60  -ScriptBlock { Get-HawkFirewallAudit }
     $boot      = Invoke-HawkCachedData -Key 'wflow_boot'     -ExpirySeconds 300 -ScriptBlock { Get-HawkBootMap }
@@ -385,7 +385,7 @@ function Invoke-HawkChangeAudit {
 function Invoke-HawkComplianceCheck {
     [CmdletBinding()]
     param()
-    Write-HawkWorkflowBanner -Title 'COMPLIANCE BASELINE CHECK' -Subtitle "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | $(hostname) | CIS-inspired"
+    Write-HawkWorkflowBanner -Title 'COMPLIANCE : BASELINE' -Subtitle "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | $(hostname)"
 
     $admin   = Get-HawkAdmin
     $shield  = Get-HawkShield

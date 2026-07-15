@@ -2,10 +2,10 @@
     RootModule        = 'HawkwardHybrid.psm1'
     ModuleVersion     = '11.3.0'
     GUID              = '9f0235b3-6a75-4f62-9bbd-3fc479a9b2bc'
-    Author            = 'shahr'
-    CompanyName       = 'Hawkward'
-    Copyright         = '(c) 2026 shahr. All rights reserved.'
-    Description       = 'Hawkward Hybrid local PowerShell ops toolkit.'
+    Author            = 'Shahriar Haque Abir'
+    CompanyName       = 'Shahriar Haque Abir'
+    Copyright         = 'Copyright (c) 2026 Shahriar Haque Abir. All rights reserved.'
+    Description       = 'PowershellOps: A high-performance local PowerShell SysOps utility suite for Windows.'
     PowerShellVersion = '7.0'
     FunctionsToExport = @(
         'Add-HawkMemory',

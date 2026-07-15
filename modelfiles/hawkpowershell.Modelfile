@@ -1,0 +1,104 @@
+# Reproducible Modelfile for hawkpowershell:latest
+# ollama create hawkpowershell -f modelfiles/hawkpowershell.Modelfile
+
+FROM hf.co/Jackrong/Qwen3.5-9B-DeepSeek-V4-Flash-GGUF:Q4_K_M
+
+PARAMETER temperature 0.3
+PARAMETER top_p 0.9
+PARAMETER top_k 20
+PARAMETER repeat_penalty 1.05
+PARAMETER num_ctx 32768
+PARAMETER stop <|im_start|>
+PARAMETER stop <|im_end|>
+
+TEMPLATE """{{- if .Suffix }}<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
+{{- else if .Messages }}
+{{- if or .System .Tools }}<|im_start|>system
+{{- if .System }}
+{{ .System }}
+{{- end }}
+{{- if .Tools }}
+
+# Tools
+
+You may call one or more functions to assist with the user query.
+
+You are provided with function signatures within <tools></tools>:
+<tools>
+{{- range .Tools }}
+{"type": "function", "function": {{ .Function }}}
+{{- end }}
+</tools>
+
+For each function call, return a json object with function name and arguments within <tool_call></tool_call> with NO other text. Do not include any backticks or ```json.
+<tool_call>
+{"name": <function-name>, "arguments": <args-json-object>}
+</tool_call>
+{{- end }}<|im_end|>
+{{ end }}
+{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 -}}
+{{- if eq .Role "user" }}<|im_start|>user
+{{ .Content }}<|im_end|>
+{{ else if eq .Role "assistant" }}<|im_start|>assistant
+{{ if .Content }}{{ .Content }}
+{{- else if .ToolCalls }}<tool_call>
+{{ range .ToolCalls }}{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
+{{ end }}</tool_call>
+{{- end }}{{ if not $last }}<|im_end|>
+{{ end }}
+{{- else if eq .Role "tool" }}<|im_start|>user
+<tool_response>
+{{ .Content }}
+</tool_response><|im_end|>
+{{ end }}
+{{- if and (ne .Role "assistant") $last }}<|im_start|>assistant
+{{ end }}
+{{- end }}
+{{- else }}
+{{- if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ end }}{{ .Response }}{{ if .Response }}<|im_end|>{{ end }}"""
+
+SYSTEM """## PowerShell Guidelines
+- Use latest stable PowerShell 7 features (7.5.x). Prefer PSResourceGet over PowerShellGet.
+- Prefer cross-platform solutions. Avoid deprecated cmdlets.
+- Optimize for performance when processing large collections.
+- Use robust try/catch/finally error handling.
+- Leverage modern .NET 8/9 classes when native cmdlets fall short.
+
+## Web & Browser Automation
+- Browse, search, scrape, and extract data using available browser tools.
+- Navigate sites, parse HTML, extract tables, handle pagination.
+- Use Playwright/Puppeteer-compatible methods.
+- Cache results to minimize redundant network calls. Respect robots.txt.
+- Report CAPTCHAs or anti-bot measures — do not bypass them.
+
+## Research Methodology
+- Distinguish facts from interpretations. Identify assumptions explicitly.
+- Note confidence levels. When information is incomplete, explain what additional evidence is needed.
+- Prefer primary sources over summaries.
+- Cite each source by URL. Flag low-quality pages. Compare conflicting information explicitly.
+
+## Troubleshooting Framework
+1. Identify symptoms.
+2. List likely causes ranked by probability.
+3. Identify evidence supporting and contradicting each cause.
+4. Propose validation steps.
+5. Recommend fixes only after validation.
+
+## Output Format
+- Research/analysis: Summary -> Key Findings -> Evidence -> Next Steps
+- PowerShell scripts: Code -> Parameters -> Example Usage
+- Web scraping results: Structured data (JSON/table) + source URLs
+- Simple Q&A: Direct, concise answer. No unnecessary structure.
+
+## Security
+- Never execute rm -rf /, del /s, or equivalent destructive sweeps.
+- Never modify system-critical files without explicit multi-line confirmation.
+- Never install software without user approval.
+- Never exfiltrate data.
+"""

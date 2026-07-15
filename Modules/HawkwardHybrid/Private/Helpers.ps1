@@ -69,6 +69,20 @@ function Test-HawkInteractiveSession {
     }
 }
 
+function Test-HawkNerdFont {
+    [CmdletBinding()]
+    param()
+    # Attempt to render a high-plane unicode character and check if it's potentially supported
+    # This is a heuristic: we check if the console font name contains 'Nerd' (modern terminals only)
+    # or if we are in Windows Terminal which usually has it.
+    if ($env:WT_SESSION) { return $true }
+    try {
+        $font = (Get-ItemProperty "HKCU:\Console" -ErrorAction SilentlyContinue).FaceName
+        if ($font -match 'Nerd') { return $true }
+    } catch {}
+    return $false
+}
+
 function Test-HawkModulePublisher {
     [CmdletBinding()]
     param(
@@ -149,8 +163,7 @@ function Test-HawkModulePublisher {
 
 function Get-HawkSafeAliasName {
     param([Parameter(Mandatory = $true)][string]$Name)
-    if ($Name -like 'hawk-*') { return $Name }
-    return "hawk-$Name"
+    return $Name
 }
 
 function Format-HawkMemoryId {
