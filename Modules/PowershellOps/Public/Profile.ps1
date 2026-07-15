@@ -295,7 +295,7 @@ function Initialize-HawkProfile {
 function Update-HawkModule {
     [CmdletBinding(SupportsShouldProcess)]
     param()
-    if ($PSCmdlet.ShouldProcess('HawkwardHybrid', 'Pull latest and reload')) {
+    if ($PSCmdlet.ShouldProcess('PowershellOps', 'Pull latest and reload')) {
         $moduleDir = $PSScriptRoot
         $repoRoot = $moduleDir
         for ($i = 0; $i -lt 5 -and $repoRoot; $i++) {
@@ -313,10 +313,10 @@ function Update-HawkModule {
             Write-Information "  [Update] Pulling latest from git..." -InformationAction Continue
             git pull
             Write-Information "  [Update] Removing module from session..." -InformationAction Continue
-            Remove-Module HawkwardHybrid -Force -ErrorAction SilentlyContinue
+            Remove-Module PowershellOps -Force -ErrorAction SilentlyContinue
             Write-Information "  [Update] Reloading..." -InformationAction Continue
-            Import-Module (Join-Path $moduleDir 'HawkwardHybrid.psd1') -Force -Global
-            Write-Information "  [Update] HawkwardHybrid reloaded." -InformationAction Continue
+            Import-Module (Join-Path $moduleDir 'PowershellOps.psd1') -Force -Global
+            Write-Information "  [Update] PowershellOps reloaded." -InformationAction Continue
         } finally { Pop-Location }
     }
 }
@@ -371,4 +371,5 @@ function Get-HawkEnv {
         'License'    { Get-HawkLicense }
     }
 }
+
 

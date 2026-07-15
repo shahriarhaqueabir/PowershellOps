@@ -69,7 +69,7 @@ function Invoke-HawkAI {
     end {
         $stringifiedData = $dataBuffer | Out-String; if ($RedactSensitive) { $stringifiedData = $stringifiedData | Protect-HawkSensitiveText | Out-String }
         $ctx = Build-HawkAIContextPacket -Instruction $Instruction -InputObject $dataBuffer.ToArray() -MemoryLimit $MemoryLimit -NoMemory:$NoMemory
-        $contract = "You are Hawkward AI, a fast local PowerShell/SysOps assistant.`nUse the context envelope, relevant memory, and pipeline data as evidence.`nDefault to a concise answer. Expand only when requested.`nIf pipeline data is present, answer from it first and preserve its units.`nDo not output commands unless specifically requested."
+        $contract = "You are PowershellOps AI, a fast local PowerShell/SysOps assistant.`nUse the context envelope, relevant memory, and pipeline data as evidence.`nDefault to a concise answer. Expand only when requested.`nIf pipeline data is present, answer from it first and preserve its units.`nDo not output commands unless specifically requested."
         $payload = @{ model = $Model; prompt = "$contract`n`n$($ctx.Text)`n`nUser question:`n$Instruction`n`nPowerShell pipeline data:`n$stringifiedData"; stream = $true } | ConvertTo-Json -Depth 5
         $success = $false; $lastErr = $null
         for ($attempt = 1; $attempt -le (1 + $MaxRetries) -and -not $success; $attempt++) {
@@ -100,3 +100,4 @@ function Invoke-HawkAI {
         if (-not $success -and $lastErr) { throw $lastErr }
     }
 }
+

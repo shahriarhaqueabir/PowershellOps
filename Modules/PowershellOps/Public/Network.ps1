@@ -209,7 +209,7 @@ function Invoke-HawkSearch {
             Write-HawkHeader "  [Background] Spawning detached background job (Start-Job) ..." Yellow
             $contextFile = [System.IO.Path]::GetTempFileName()
             $context | Out-File -FilePath $contextFile -Encoding UTF8 -Force
-            $moduleManifest = Join-Path $PSScriptRoot 'HawkwardHybrid.psd1'
+            $moduleManifest = Join-Path $PSScriptRoot 'PowershellOps.psd1'
             $sb = {
                 param($CtxFile, $Instr, $ModPath, $Timeout)
                 try {
@@ -230,3 +230,4 @@ function Invoke-HawkSearch {
             $context | Invoke-HawkAI -Instruction $Instruction
         } catch { Start-Process $urls[$Engine] }
 }
+

@@ -162,10 +162,10 @@ The dashboard queries Ollama `/api/tags` (2s timeout) to report AI status (ACTIV
 | Alias | Full command | Under the hood |
 |-------|-------------|----------------|
 | `remember` | `Add-HawkMemory` | Appends a JSONL entry to `$script:HawkMemoryFile` with Id (`mem_{yyyyMMdd_HHmmss}_{guid[0:6]}`), Type (note/preference/runbook/session/web/sysops), Tags, Text (auto-redacted via `Protect-HawkSensitiveText`), Source, Created (ISO 8601), Confidence (low/medium/high/user), Pinned flag. Supports `-WhatIf`. |
-| `recall` | `Search-HawkMemory` | Reads `hawk-memory.jsonl`, parses lines with `ConvertFrom-Json -AsHashtable` into `[HawkMemoryEntry]`. Accepts `-Query` (term-matching), `-Pinned`, `-First`. Scores results by term hit count (+2 if pinned), sorts by score desc then Created desc. |
-| `memmap` | `Get-HawkMemoryMap` | Reads entire `hawk-memory.jsonl`; supports `-Tag`, `-Pinned`, `-First` (default 40). Sorts by Created desc. |
-| `readmem` | `Read-HawkMemory` | Reads all entries from `hawk-memory.jsonl` and returns them as `[HawkMemoryEntry]` objects. No parameter filtering (use `Search-HawkMemory` for queries). |
-| `memfile` | `Get-HawkMemoryFile` | Returns the resolved path to `hawk-memory.jsonl`; creates the `Memory/` directory if absent. |
+| `recall` | `Search-HawkMemory` | Reads `ops-memory.jsonl`, parses lines with `ConvertFrom-Json -AsHashtable` into `[HawkMemoryEntry]`. Accepts `-Query` (term-matching), `-Pinned`, `-First`. Scores results by term hit count (+2 if pinned), sorts by score desc then Created desc. |
+| `memmap` | `Get-HawkMemoryMap` | Reads entire `ops-memory.jsonl`; supports `-Tag`, `-Pinned`, `-First` (default 40). Sorts by Created desc. |
+| `readmem` | `Read-HawkMemory` | Reads all entries from `ops-memory.jsonl` and returns them as `[HawkMemoryEntry]` objects. No parameter filtering (use `Search-HawkMemory` for queries). |
+| `memfile` | `Get-HawkMemoryFile` | Returns the resolved path to `ops-memory.jsonl`; creates the `Memory/` directory if absent. |
 
 ### AI Context Builders
 
@@ -207,7 +207,7 @@ The dashboard queries Ollama `/api/tags` (2s timeout) to report AI status (ACTIV
 
 | Alias | Full command | Under the hood |
 |-------|-------------|----------------|
-| `dash` | `Show-HawkDashboard` | Queries Ollama `/api/tags` (2s timeout), resolves project root, renders 7-category sub-grouped command grid with aliases. Columns auto-fit to console width (1/2/4). Uses `Get-Command -Module HawkwardHybrid` for command listing and `Get-Alias` for alias resolution. |
+| `dash` | `Show-HawkDashboard` | Queries Ollama `/api/tags` (2s timeout), resolves project root, renders 7-category sub-grouped command grid with aliases. Columns auto-fit to console width (1/2/4). Uses `Get-Command -Module PowershellOps` for command listing and `Get-Alias` for alias resolution. |
 | `watch` | `Watch-HawkDashboard` | `while($true) { Clear-Host; Show-HawkDashboard; Start-Sleep -Seconds 2 }` — polls and re-renders every 2 seconds (configurable via `-IntervalSeconds`). Gates on `Test-HawkInteractiveSession`. |
 | `hawkman` | `Show-HawkManual` | Opens MANUAL.md (`Invoke-Item $manualPath`) in default editor/browser. |
 | `reload` | `Update-HawkProfile` | Dot-sources `$PROFILE` (`. $PROFILE`) — reimports module, re-runs `Initialize-HawkProfile`. Supports `-WhatIf`. |
@@ -228,7 +228,7 @@ The dashboard queries Ollama `/api/tags` (2s timeout) to report AI status (ACTIV
 |-------------|----------------|
 | `Install-HawkPrerequisite` | `Install-Module Terminal-Icons, PSReadLine, PSTree -Scope CurrentUser -Force -ErrorAction Stop`, then validates the installed module metadata against the expected author/company profile. Supports `-WhatIf`. |
 | `Import-HawkPrerequisite` | `Import-Module Terminal-Icons, PSReadLine, PSTree -ErrorAction SilentlyContinue`. Returns status per module (Imported/Missing/Failed). |
-| `Update-HawkModule` | Walks up from `$PSScriptRoot` to find `.git` directory → `git pull` → `Remove-Module HawkwardHybrid` → `Import-Module HawkwardHybrid.psd1 -Force -Global`. Supports `-WhatIf`. |
+| `Update-HawkModule` | Walks up from `$PSScriptRoot` to find `.git` directory → `git pull` → `Remove-Module PowershellOps` → `Import-Module PowershellOps.psd1 -Force -Global`. Supports `-WhatIf`. |
 
 ---
 
@@ -394,3 +394,4 @@ The 2.3s profile load is mainly from `Import-HawkPrerequisite` checking PSGaller
 
 ### Dispatch
 `sys` · `audit` · `net` · `env`
+

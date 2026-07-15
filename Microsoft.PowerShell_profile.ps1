@@ -5,7 +5,7 @@
 
 # Path Resolution
 $hawkProfileRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $PROFILE.CurrentUserCurrentHost }
-$hawkModuleManifest = Join-Path $hawkProfileRoot 'Modules\HawkwardHybrid\HawkwardHybrid.psd1'
+$hawkModuleManifest = Join-Path $hawkProfileRoot 'Modules\PowershellOps\PowershellOps.psd1'
 
 # Module Verification
 if (-not (Test-Path $hawkModuleManifest)) {
@@ -27,3 +27,4 @@ catch {
 if (Get-Command scoop-search -ErrorAction SilentlyContinue) {
     . ([ScriptBlock]::Create((& scoop-search --hook | Out-String))) | Out-Null
 }
+

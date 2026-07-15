@@ -1,5 +1,6 @@
 [31;1mParserError: [0m
 [31;1m[36;1mLine |[0m
-[31;1m[36;1m[36;1m   1 | [0m . top;  = Get-Module HawkwardHybrid; Write-Host ('Exported: ' +[36;1m [0m.Export .[0m
+[31;1m[36;1m[36;1m   1 | [0m . top;  = Get-Module PowershellOps; Write-Host ('Exported: ' +[36;1m [0m.Export .[0m
 [31;1m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m                                                                ~[0m
 [31;1m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mYou must provide a value expression following the '+' operator.[0m
+

@@ -1,9 +1,9 @@
 # ==============================================================================
-# HawkwardHybrid Pester Tests
+# PowershellOps Pester Tests
 # ==============================================================================
 BeforeAll {
-    $script:moduleManifest = Join-Path $PSScriptRoot '..' 'HawkwardHybrid.psd1'
-    $script:modulePath = Join-Path $PSScriptRoot '..' 'HawkwardHybrid.psm1'
+    $script:moduleManifest = Join-Path $PSScriptRoot '..' 'PowershellOps.psd1'
+    $script:modulePath = Join-Path $PSScriptRoot '..' 'PowershellOps.psm1'
 
     # Ensure module can be imported without errors
     Import-Module $script:moduleManifest -Force -ErrorAction Stop
@@ -18,7 +18,7 @@ Describe 'Module Import' {
     }
 
     It 'Exports all expected functions' {
-        $exported = Get-Module HawkwardHybrid | Select-Object -ExpandProperty ExportedFunctions
+        $exported = Get-Module PowershellOps | Select-Object -ExpandProperty ExportedFunctions
         $exported.Count | Should -BeGreaterThan 80
         $exported.Keys | Should -Contain 'Get-HawkHealth'
         $exported.Keys | Should -Contain 'Invoke-HawkSearch'
@@ -272,7 +272,7 @@ Describe 'Memory system' {
     It 'Get-HawkMemoryFile returns a path' {
         $result = Get-HawkMemoryFile
         $result | Should -Not -BeNullOrEmpty
-        $result | Should -Match 'hawk-memory'
+        $result | Should -Match 'ops-memory'
     }
 
     It 'Read-HawkMemory returns entries or gracefully returns null' {
@@ -378,7 +378,7 @@ Describe 'Profile & helpers' {
 
     It 'Get-HawkSafeAliasName normalizes names' {
         # Private helper - access through module's internal scope
-        $mod = Get-Module HawkwardHybrid
+        $mod = Get-Module PowershellOps
         & $mod Get-HawkSafeAliasName -Name 'test' | Should -Be 'hawk-test'
         & $mod Get-HawkSafeAliasName -Name 'hawk-test' | Should -Be 'hawk-test'
     }
@@ -509,5 +509,6 @@ Describe 'Network dispatch (Get-HawkNetwork)' {
 
 AfterAll {
     # Cleanup test variables
-    Remove-Module HawkwardHybrid -Force -ErrorAction SilentlyContinue
+    Remove-Module PowershellOps -Force -ErrorAction SilentlyContinue
 }
+

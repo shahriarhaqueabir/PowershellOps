@@ -5,9 +5,9 @@ param(
 )
 
 $projectRoot = $PSScriptRoot
-$moduleManifest = Join-Path $projectRoot "Modules\HawkwardHybrid\HawkwardHybrid.psd1"
-$moduleFile = Join-Path $projectRoot "Modules\HawkwardHybrid\HawkwardHybrid.psm1"
-$testFile = Join-Path $projectRoot "Modules\HawkwardHybrid\Tests\HawkwardHybrid.Tests.ps1"
+$moduleManifest = Join-Path $projectRoot "Modules\PowershellOps\PowershellOps.psd1"
+$moduleFile = Join-Path $projectRoot "Modules\PowershellOps\PowershellOps.psm1"
+$testFile = Join-Path $projectRoot "Modules\PowershellOps\Tests\PowershellOps.Tests.ps1"
 
 $esc = [char]27
 $reset = "${esc}[0m"
@@ -77,3 +77,4 @@ if ($exitCode -eq 0) {
 }
 
 exit $exitCode
+

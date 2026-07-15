@@ -1,5 +1,5 @@
 @{
-    RootModule        = 'HawkwardHybrid.psm1'
+    RootModule        = 'PowershellOps.psm1'
     ModuleVersion     = '11.3.0'
     GUID              = '9f0235b3-6a75-4f62-9bbd-3fc479a9b2bc'
     Author            = 'Shahriar Haque Abir'
@@ -116,3 +116,4 @@
     VariablesToExport = @()
     AliasesToExport   = @()
 }
+
