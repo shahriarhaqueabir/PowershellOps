@@ -8,33 +8,73 @@
 function Write-OpsWorkflowBanner {
     [CmdletBinding()]
     param([string]$Title, [string]$Subtitle)
+    $esc = [char]27
+    $reset = "${esc}[0m"
+    $lavender = "183"
+    $gray = "244"
     $rule = '─' * 70
-    Write-Host "  ┌$rule┐" -ForegroundColor DarkGray
-    Write-Host '  │ ' -NoNewline -ForegroundColor DarkGray
-    Write-Host "$Title".PadRight(68) -ForegroundColor Cyan -NoNewline
-    Write-Host ' │' -ForegroundColor DarkGray
+
+    Write-Host "`n  ${esc}[38;5;${gray}m┌$rule┐${reset}"
+    Write-Host "  ${esc}[38;5;${gray}m│ ${reset}" -NoNewline
+    Write-Host "${esc}[48;5;${lavender}m${esc}[38;5;16m  $Title ${reset}".PadRight(78) -NoNewline
+    Write-Host " ${esc}[38;5;${gray}m│${reset}"
     if ($Subtitle) {
-        Write-Host '  │ ' -NoNewline -ForegroundColor DarkGray
-        Write-Host $Subtitle.PadRight(68) -ForegroundColor DarkGray -NoNewline
-        Write-Host ' │' -ForegroundColor DarkGray
+        Write-Host "  ${esc}[38;5;${gray}m│ ${reset}" -NoNewline
+        Write-Host " $Subtitle".PadRight(68) -ForegroundColor DarkGray -NoNewline
+        Write-Host " ${esc}[38;5;${gray}m│${reset}"
     }
-    Write-Host "  └$rule┘" -ForegroundColor DarkGray
+    Write-Host "  ${esc}[38;5;${gray}m└$rule┘${reset}"
 }
 
 function Write-OpsWorkflowSection {
     [CmdletBinding()]
-    param([string]$Name, [string]$Color = 'Yellow')
-    Write-Host "`n  [ $Name ] $('─' * [Math]::Max(1, (58 - $Name.Length)))" -ForegroundColor $Color
+    param([string]$Name, [string]$Color = '153')
+    $esc = [char]27
+    $reset = "${esc}[0m"
+
+    # Map friendly names to professional pastel palette
+    $ansi = switch ($Color) {
+        'Yellow'  { '230' } # Champagne
+        'Red'     { '217' } # Soft Coral
+        'Blue'    { '153' } # Sky Blue
+        'Cyan'    { '158' } # Mint
+        'Green'   { '158' } # Mint
+        'Magenta' { '183' } # Lavender
+        Default   { if ($Color -match '^\d+$') { $Color } else { '153' } }
+    }
+
+    $icon = switch ($Name) {
+        'SYSTEM'          { '󰒓' }
+        'STORAGE'         { '󰋊' }
+        'NETWORK'         { '󰒢' }
+        'DEFENDER'        { '󰒕' }
+        'FIREWALL'        { '󰒙' }
+        'STARTUP & TASKS' { '󰒖' }
+        'ANOMALIES'       { '󰒝' }
+        'HARDWARE'        { '󰒓' }
+        'PERFORMANCE'     { '󰒖' }
+        'RECOMMENDATIONS' { '󰒙' }
+        Default           { '󰒙' }
+    }
+
+    Write-Host "`n  ${esc}[38;5;${ansi}m$icon [ $Name ]${reset} ${esc}[38;5;244m$('─' * [Math]::Max(1, (58 - $Name.Length)))${reset}"
 }
 
 function Write-OpsRecommendations {
     [CmdletBinding()]
     param([array]$Items)
-    Write-OpsWorkflowSection -Name 'RECOMMENDATIONS' -Color 'DarkYellow'
+    Write-OpsWorkflowSection -Name 'RECOMMENDATIONS' -Color '230' # Champagne/Yellow
     foreach ($item in $Items) {
-        $icon = $item[0]; $color = $item[1]; $msg = $item[2]
-        if (-not $color) { continue }
-        Write-Host "  $icon $msg" -ForegroundColor $color
+        $icon = $item[0]; $colorName = $item[1]; $msg = $item[2]
+        if (-not $colorName) { continue }
+        $ansi = switch ($colorName) {
+            'Red'    { '217' }
+            'Yellow' { '230' }
+            'Green'  { '158' }
+            Default  { '153' }
+        }
+        Write-Host "  $icon " -NoNewline
+        Write-Host $msg -ForegroundColor White # Message in white for readability
     }
 }
 
