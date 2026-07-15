@@ -110,7 +110,8 @@ function Show-OpsDashboard {
         Net    = "153" # Sky Blue
         Aim    = "183" # Lavender
         Run    = "230" # Champagne
-        Env    = "244" # Medium Gray
+        Env    = "158" # Mint (Reusing Mint for ENV)
+        Cfg    = "246" # Gray for CORE/Config
     }
 
     # Header Segment
@@ -120,25 +121,28 @@ function Show-OpsDashboard {
     Write-Host "${esc}[38;5;16m AI: $aiStatus ${reset}${esc}[38;5;$($c.AI)m$sep${reset}"
 
     $categories = @(
-        @{ Icon = '󰒓'; Name = 'SYSTEM';   Bg = $c.Sys; Cmds = @('corehealth','sysspec','sysuptime','ramstats','battstatus','gpuview','powertriage','vmcheck','liccheck','diskpressure','tempcheck','clipcheck','smartstatus','resourcemap','portmap') }
-        @{ Icon = '󰒕'; Name = 'SECURITY'; Bg = $c.Sec; Cmds = @('adminaudit','shieldstatus','fwcheck','bootmap','taskrisk','ghostports','susprocs','eventstorm','certaudit','dumpmap','filecheck','shortcutcheck','lockcheck','sparsecheck','compresscheck','patchhistory','driveraudit','recentfiles','secretmask') }
-        @{ Icon = '󰒢'; Name = 'NETWORK';  Bg = $c.Net; Cmds = @('netping','wificheck','peerscheck','dnsbench','netspeed','smbshares','hostscheck','dnsmap','nettriage') }
-        @{ Icon = '󰒙'; Name = 'AI/MEM';   Bg = $c.Aim; Cmds = @('askai','websearch','aistatus','aiintent','aiprofile','sourcequality','safetycheck','airemember','airecall','memorymap','memoryread','memoryfile') }
-        @{ Icon = '󰒖'; Name = 'RUN';      Bg = $c.Run; Cmds = @('dailycheck','sysreview','secaudit','netdiag','threathunt','changeaudit','compliancecheck','fullreport') }
+        @{ Icon = '󰒓'; Name = 'SYSTEM';      Bg = $c.Sys; Cmds = @('corehealth','sysspec','sysuptime','ramstats','battstatus','gpuview','powertriage','vmcheck','liccheck','diskpressure','tempcheck','clipcheck','smartstatus','resourcemap','portmap','sysdiag') }
+        @{ Icon = '󰒕'; Name = 'SECURITY';    Bg = $c.Sec; Cmds = @('adminaudit','shieldstatus','fwcheck','bootmap','taskrisk','ghostports','susprocs','eventstorm','certaudit','dumpmap','filecheck','shortcutcheck','lockcheck','sparsecheck','compresscheck','patchhistory','driveraudit','recentfiles','secretmask','auditdiag') }
+        @{ Icon = '󰒢'; Name = 'NETWORK';     Bg = $c.Net; Cmds = @('netping','wificheck','peerscheck','dnsbench','netspeed','smbshares','hostscheck','dnsmap','nettriage','netview') }
+        @{ Icon = '󰒙'; Name = 'AI/MEM';      Bg = $c.Aim; Cmds = @('askai','websearch','aistatus','aiintent','aiprofile','sourcequality','safetycheck','airemember','airecall','memorymap','memoryread','memoryfile') }
+        @{ Icon = '󰒖'; Name = 'RUN';         Bg = $c.Run; Cmds = @('dailycheck','sysreview','secaudit','netreview','threathunt','changeaudit','compliancecheck','fullreport') }
+        @{ Icon = '󰆧'; Name = 'ENVIRONMENT'; Bg = $c.Env; Cmds = @('envmap','pathaudit','applist','apploc','envdiag') }
+        @{ Icon = '󰅟'; Name = 'CORE';        Bg = $c.Cfg; Cmds = @('projview','projset','openhere','corecache','coreindex','watchindex','corereload','coreinit','coremanual') }
     )
 
-    $headerWidth = 14
+    $headerWidth = 16
     $colWidth = 16
 
     foreach ($cat in $categories) {
         $icon = if ($isNerd) { $cat.Icon } else { '' }
         $label = "$icon $($cat.Name)".Trim()
 
+        # Left Header Column
         Write-Host " ${esc}[48;5;$($cat.Bg)m${esc}[38;5;16m $($label.PadRight($headerWidth - 1)) ${reset}" -NoNewline
         Write-Host "${esc}[38;5;$($cat.Bg)m$sep${reset} " -NoNewline
 
         $lineCmds = 0
-        $maxLineCmds = [Math]::Floor(($cWidth - $headerWidth - 4) / $colWidth)
+        $maxLineCmds = [Math]::Floor(($cWidth - $headerWidth - 6) / $colWidth)
 
         for ($i = 0; $i -lt $cat.Cmds.Count; $i++) {
             if ($lineCmds -ge $maxLineCmds) {
@@ -155,8 +159,8 @@ function Show-OpsDashboard {
 
     # Environment Footer
     Write-Host "`n " -NoNewline
-    Write-Host "${esc}[38;5;$($c.Env)m$rsep${reset}" -NoNewline
-    Write-Host "${esc}[48;5;$($c.Env)m${esc}[38;5;15m ENV: ${reset}" -NoNewline
+    Write-Host "${esc}[38;5;$($c.Cfg)m$rsep${reset}" -NoNewline
+    Write-Host "${esc}[48;5;$($c.Cfg)m${esc}[38;5;15m ENV: ${reset}" -NoNewline
     Write-Host "${esc}[48;5;238m${esc}[38;5;250m  $($pRoot)  ${reset}${esc}[38;5;238m$sep${reset}"
 }
 
