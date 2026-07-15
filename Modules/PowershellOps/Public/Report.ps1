@@ -20,7 +20,7 @@ function ConvertTo-HawkMarkdownTable {
 
 function ConvertTo-HawkReportMarkdown {
     param($Report)
-    $lines = [System.Collections.Generic.List[string]]::new(); $lines.Add('# Hawkward Hybrid Structural Triage Report'); $lines.Add("Generated: $($Report.Generated)`n")
+    $lines = [System.Collections.Generic.List[string]]::new(); $lines.Add('# PowershellOps Hybrid Structural Triage Report'); $lines.Add("Generated: $($Report.Generated)`n")
     foreach ($section in @('AI', 'Disk', 'Resources', 'Ports', 'FirewallGaps', 'Startup', 'ScheduledTaskRisks', 'EventStorms')) {
         $lines.Add("## $section`n"); $lines.Add((ConvertTo-HawkMarkdownTable -InputObject $Report[$section] -Section $section))
     }
@@ -166,3 +166,4 @@ function Watch-HawkDashboard {
     Write-Information "  [Watch] Dashboard live refresh every ${IntervalSeconds}s. Press Ctrl+C to exit." -InformationAction Continue
     while ($true) { Clear-Host; Show-HawkDashboard; Start-Sleep -Seconds $IntervalSeconds }
 }
+

@@ -39,7 +39,7 @@ if ($sourceProfile -ne $profilePath) {
 
 # 4. Dependency Sync
 Write-Host "  ${esc}[38;5;158m[ DEPS ]${reset} Syncing module dependencies..."
-$modulePath = Join-Path $target "Modules\HawkwardHybrid\HawkwardHybrid.psd1"
+$modulePath = Join-Path $target "Modules\PowershellOps\PowershellOps.psd1"
 if (Test-Path $modulePath) {
     # We run pwsh here to ensure a fresh environment for module installation
     pwsh -NoProfile -Command "Import-Module '$modulePath' -Force; Install-HawkPrerequisite"
@@ -50,3 +50,4 @@ Write-Host "`n  ${esc}[48;5;158m${esc}[38;5;16m OK ${reset} Provisioning complet
 Write-Host "  ${esc}[38;5;246m────────────────────────────────────────────────────${reset}"
 Write-Host "  Restart terminal to initialize core."
 Write-Host "  Index command: 'coreindex'`n" -ForegroundColor Cyan
+

@@ -22,7 +22,7 @@ Thanks for your interest! This project is a PowerShell 7 module and profile — 
 
 ## Testing
 
-Tests are in `Modules/HawkwardHybrid/Tests/` and use Pester.
+Tests are in `Modules/PowershellOps/Tests/` and use Pester.
 
 ```powershell
 ./Invoke-HawkBuild.ps1
@@ -40,3 +40,4 @@ This runs PSScriptAnalyzer (Error/Warning severity) and all Pester tests.
 ## Questions?
 
 Open a [GitHub Issue](https://github.com/shahriarhaqueabir/PowershellOps/issues).
+

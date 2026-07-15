@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # PowershellOps 11.3 - Integrated Operational Core Engine (Production Refactored)
 # ==============================================================================
 # Private helpers + Public functions are dot-sourced from Private/*.ps1 and Public/*.ps1
@@ -19,7 +19,7 @@ $script:HawkSensitiveNamePattern = '(?i)(secret|token|password|passwd|pwd|creden
 $script:HawkLastFirewallFilterError = $null
 $script:HawkReportRoot = Join-Path $script:HawkWorkspaceRoot 'Reports'
 $script:HawkMemoryRoot = Join-Path $script:HawkWorkspaceRoot 'Memory'
-$script:HawkMemoryFile = Join-Path $script:HawkMemoryRoot 'hawk-memory.jsonl'
+$script:HawkMemoryFile = Join-Path $script:HawkMemoryRoot 'ops-memory.jsonl'
 $script:HawkFirstRunSentinel = Join-Path $script:HawkWorkspaceRoot '.hawk_first_run'
 
 # Initialize thread-safe data store cache allocation
@@ -30,15 +30,15 @@ if (-not $script:HawkCacheStore) {
 # Initialize search rate-limiting tracker
 $script:HawkLastSearchTime = $null
 
-# ── DOT-SOURCE PRIVATE HELPERS ────────────────────────────────────────────────
+# -- DOT-SOURCE PRIVATE HELPERS ------------------------------------------------
 $privatePath = Join-Path $PSScriptRoot 'Private'
 Get-ChildItem "$privatePath\*.ps1" -ErrorAction SilentlyContinue | ForEach-Object { . $_.FullName }
 
-# ── DOT-SOURCE PUBLIC FUNCTIONS ──────────────────────────────────────────────
+# -- DOT-SOURCE PUBLIC FUNCTIONS ----------------------------------------------
 $publicPath = Join-Path $PSScriptRoot 'Public'
 Get-ChildItem "$publicPath\*.ps1" -ErrorAction SilentlyContinue | ForEach-Object { . $_.FullName }
 
-# ── MODULE EXPORT ─────────────────────────────────────────────────────────────
+# -- MODULE EXPORT -------------------------------------------------------------
 Export-ModuleMember -Function @(
     'Add-HawkMemory',
     'Build-HawkAIContextPacket',
@@ -144,3 +144,4 @@ Export-ModuleMember -Function @(
     'Write-HawkHeader',
     'Write-HawkReportTable'
 ) -Alias *
+
