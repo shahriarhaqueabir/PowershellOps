@@ -1,61 +1,41 @@
 # .gitignore — Hawkward Hybrid PowerShell Profile
 
 # ─────────────────────────────────────────────
-# AUTO-GENERATED REPORTS (contain live system data — never commit)
+# AUTO-GENERATED REPORTS & TEST ARTEFACTS
 # ─────────────────────────────────────────────
 Reports/
+testResults.xml
+hawk-test-results.xml
 
 # ─────────────────────────────────────────────
-# LOCAL MEMORY (contains personal/system context — never commit)
+# LOCAL CONTEXT & MEMORY
 # ─────────────────────────────────────────────
 Memory/
 AI/TestMemory/
+.idea/
+.vscode/
 
 # ─────────────────────────────────────────────
 # POWERSHELL MODULE HELP CACHE
-# The Help/ directory contains cached help files pulled from the system.
-# These are machine-specific, large, and fully regenerable.
 # ─────────────────────────────────────────────
 Help/
+Help/**/*.xml
+Help/**/*.zip
 
 # ─────────────────────────────────────────────
-# INSTALLED SCRIPT METADATA (PSResourceGet artefacts)
+# INSTALLED SCRIPT METADATA (PSResourceGet)
 # ─────────────────────────────────────────────
 Scripts/InstalledScriptInfos/
 
 # ─────────────────────────────────────────────
 # THIRD-PARTY / VENDORED MODULES
-# These are installed from the PowerShell Gallery, not owned by this project.
-# Users install them via Install-HawkPrerequisite.
+# These should be installed via Install-HawkPrerequisite
 # ─────────────────────────────────────────────
-Modules/Terminal-Icons/
-Modules/PSReadLine/
-Modules/PSTree/
-Modules/PowerTree/
-Modules/ZLocation/
-Modules/PSAI/
-Modules/ollama-powershell/
-Modules/Pester/
-Modules/PSScriptAnalyzer/
-
-# ─────────────────────────────────────────────
-# WINDOWS SYSTEM MODULE CACHE
-# Anything that looks like a Windows inbox module path.
-# ─────────────────────────────────────────────
-Help/**/*.xml
-Help/**/*.zip
-
-# ─────────────────────────────────────────────
-# BACKUP / LEGACY FILES
-# ─────────────────────────────────────────────
-BackupOriginal/
-*.backup.ps1
-*.bak
-*.old
+Modules/*/
+!Modules/HawkwardHybrid/
 
 # ─────────────────────────────────────────────
 # SECRETS & CREDENTIALS
-# Extra safety net — none should be in this repo, but guard anyway.
 # ─────────────────────────────────────────────
 *.key
 *.pem
@@ -68,38 +48,24 @@ secrets.*
 credentials.*
 
 # ─────────────────────────────────────────────
-# TEST ARTEFACTS
+# BACKUP, LEGACY & DEV ARTEFACTS
 # ─────────────────────────────────────────────
-testResults.xml
-
-# ─────────────────────────────────────────────
-# LOCAL CONFIGURATION
-# ─────────────────────────────────────────────
-powershell.config.json
-
-# ─────────────────────────────────────────────
-# EDITOR WORKSPACE FILES
-# ─────────────────────────────────────────────
-*.code-workspace
-
-# ─────────────────────────────────────────────
-# DEV ARTEFACTS
-# ─────────────────────────────────────────────
+BackupOriginal/
+*.backup.ps1
 *.bak
 *.old
-*.backup.ps1
-BackupOriginal/
+*.tmp
+*.temp
+*.log
 
 # ─────────────────────────────────────────────
 # EDITOR & OS NOISE
 # ─────────────────────────────────────────────
-.vscode/
-.idea/
+*.code-workspace
 *.swp
 *.swo
 *~
 Thumbs.db
 Desktop.ini
 .DS_Store
-powershellOps.code-workspace
 nul
