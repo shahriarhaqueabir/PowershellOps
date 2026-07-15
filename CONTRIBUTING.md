@@ -33,7 +33,7 @@ This runs PSScriptAnalyzer (Error/Warning severity) and all Pester tests.
 ## Pull Request Process
 
 1. Run `Invoke-HawkBuild.ps1` and confirm it passes.
-2. Update `MANUAL.md` if you added or changed a command.
+2. Update `README.md` and `MANUAL.md` if you added or changed a command.
 3. Open a PR against `main` with a clear title and description.
 4. A maintainer will review within a few days.
 
