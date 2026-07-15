@@ -49,7 +49,7 @@ irm https://raw.githubusercontent.com/shahriarhaqueabir/PowershellOps/main/provi
 The interface follows a refined 14-character fixed-width strategy with an 8-bit ANSI pastel palette.
 
 ```text
- HAWK : CORE > v11.3 > AI: ACTIVE >
+ Ops : CORE > v11.3 > AI: ACTIVE >
 
  SYSTEM       > corehealth      sysspec         sysuptime       ramstats
                 battstatus      gpuview         powertriage     vmcheck
@@ -146,3 +146,4 @@ High-density scored reports (0–100) combining multiple diagnostics.
 <div align="center">
   <sub>MIT © 2026 · <a href="https://github.com/shahriarhaqueabir">Shahriar Haque Abir</a> · powershell-ops</sub>
 </div>
+

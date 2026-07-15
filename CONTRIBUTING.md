@@ -12,9 +12,9 @@ Thanks for your interest! This project is a PowerShell 7 module and profile — 
 
 | Rule | Reason |
 |---|---|
-| **Prefix functions with `Hawk`** | `Get-HawkSomething` — predictable tab-completion, no collisions |
-| **Add an alias in `Set-HawkAliases`** | Users should never type the full function name |
-| **Add a dashboard entry in `Show-HawkDashboard`** | New commands must appear in the startup UI |
+| **Prefix functions with `Ops`** | `Get-OpsSomething` — predictable tab-completion, no collisions |
+| **Add an alias in `Set-OpsAliases`** | Users should never type the full function name |
+| **Add a dashboard entry in `Show-OpsDashboard`** | New commands must appear in the startup UI |
 | **Use `[CmdletBinding()]`** | Enables `-Verbose`, `-ErrorAction`, and `-WhatIf` |
 | **Output `[PSCustomObject]`** | Pipes cleanly into Format-Table, ConvertTo-Json, and the report engine |
 | **`-ErrorAction SilentlyContinue` on reads, `Stop` on writes** | Audit functions must not crash the session |
@@ -25,14 +25,14 @@ Thanks for your interest! This project is a PowerShell 7 module and profile — 
 Tests are in `Modules/PowershellOps/Tests/` and use Pester.
 
 ```powershell
-./Invoke-HawkBuild.ps1
+./Invoke-OpsBuild.ps1
 ```
 
 This runs PSScriptAnalyzer (Error/Warning severity) and all Pester tests.
 
 ## Pull Request Process
 
-1. Run `Invoke-HawkBuild.ps1` and confirm it passes.
+1. Run `Invoke-OpsBuild.ps1` and confirm it passes.
 2. Update `README.md` and `MANUAL.md` if you added or changed a command.
 3. Open a PR against `main` with a clear title and description.
 4. A maintainer will review within a few days.
@@ -40,4 +40,5 @@ This runs PSScriptAnalyzer (Error/Warning severity) and all Pester tests.
 ## Questions?
 
 Open a [GitHub Issue](https://github.com/shahriarhaqueabir/PowershellOps/issues).
+
 

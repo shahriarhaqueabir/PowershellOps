@@ -1,11 +1,11 @@
 # ── PUBLIC: SECURITY AUDIT ────────────────────────────────────────────────
 
-function Get-HawkFirewallAudit {
-    return Invoke-HawkCachedData -Key 'sys_fwaudit' -ExpirySeconds 60 -ScriptBlock {
+function Get-OpsFirewallAudit {
+    return Invoke-OpsCachedData -Key 'sys_fwaudit' -ExpirySeconds 60 -ScriptBlock {
         if (-not (Get-Command Get-NetFirewallRule -ErrorAction SilentlyContinue)) {
             return [PSCustomObject]@{ Port = 'ALL'; PID = '0'; Process = 'N/A'; Status = 'NetSecurity Module Missing' }
         }
-        $listeners = Get-HawkPortMap
+        $listeners = Get-OpsPortMap
         $allowPorts = Get-NetFirewallRule -Enabled True -Direction Inbound -Action Allow -ErrorAction SilentlyContinue |
             Select-Object -First 200 |
             Get-NetFirewallPortFilter -ErrorAction SilentlyContinue |
@@ -22,8 +22,8 @@ function Get-HawkFirewallAudit {
     }
 }
 
-function Get-HawkBootMap {
-    return Invoke-HawkCachedData -Key 'sys_bootmap' -ExpirySeconds 300 -ScriptBlock {
+function Get-OpsBootMap {
+    return Invoke-OpsCachedData -Key 'sys_bootmap' -ExpirySeconds 300 -ScriptBlock {
         $paths = @('HKLM:\Software\Microsoft\Windows\CurrentVersion\Run', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run')
         foreach ($p in $paths) {
             if (Test-Path $p) {
@@ -36,8 +36,8 @@ function Get-HawkBootMap {
     }
 }
 
-function Get-HawkScheduledTaskRiskAudit {
-    return Invoke-HawkCachedData -Key 'sys_taskaudit' -ExpirySeconds 300 -ScriptBlock {
+function Get-OpsScheduledTaskRiskAudit {
+    return Invoke-OpsCachedData -Key 'sys_taskaudit' -ExpirySeconds 300 -ScriptBlock {
         if (-not (Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue)) { return @() }
         Get-ScheduledTask |
             Where-Object { $_.State -ne 'Disabled' -and $_.TaskPath -notmatch '^\\\\Microsoft' } |
@@ -46,15 +46,15 @@ function Get-HawkScheduledTaskRiskAudit {
     }
 }
 
-function Get-HawkGhostPortAudit { Get-HawkPortMap | Where-Object { $_.Process -in @('Unknown', 'System Listen Stack') } }
+function Get-OpsGhostPortAudit { Get-OpsPortMap | Where-Object { $_.Process -in @('Unknown', 'System Listen Stack') } }
 
-function Get-HawkSuspiciousProcessAudit {
+function Get-OpsSuspiciousProcessAudit {
     Get-Process | Where-Object { $_.Path -and $_.Path -match '(?i)(\\AppData\\|\\Temp\\|\\Windows\\Temp\\)' } |
         Select-Object Name, Id, @{N='Path';E={$_.Path}}, @{N='CPU';E={[Math]::Round($_.CPU, 1)}}, @{N='RAMMB';E={[Math]::Round($_.WorkingSet / 1MB, 1)}}
 }
 
-function Get-HawkEventStormAudit {
-    return Invoke-HawkCachedData -Key 'sys_eventstorm' -ExpirySeconds 20 -ScriptBlock {
+function Get-OpsEventStormAudit {
+    return Invoke-OpsCachedData -Key 'sys_eventstorm' -ExpirySeconds 20 -ScriptBlock {
         try {
             $cutoff = (Get-Date).AddMinutes(-15)
             Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $cutoff } -MaxEvents 200 -ErrorAction SilentlyContinue |
@@ -66,7 +66,7 @@ function Get-HawkEventStormAudit {
     }
 }
 
-function Get-HawkShield {
+function Get-OpsShield {
     if (-not (Get-Command Get-MpComputerStatus -ErrorAction SilentlyContinue)) {
         return [PSCustomObject]@{ Status = 'Defender cmdlets unavailable' }
     }
@@ -75,25 +75,25 @@ function Get-HawkShield {
             @{N='LastQuickScanResult';E={$_.LastQuickScanResult -join ';'}}
 }
 
-function Get-HawkEnvMap { Get-ChildItem Env: | Select-Object Name, Value }
+function Get-OpsEnvMap { Get-ChildItem Env: | Select-Object Name, Value }
 
-function Get-HawkPathAudit { $env:Path -split ';' | ForEach-Object { [PSCustomObject]@{ Path = $_; Exists = (Test-Path $_) } } }
+function Get-OpsPathAudit { $env:Path -split ';' | ForEach-Object { [PSCustomObject]@{ Path = $_; Exists = (Test-Path $_) } } }
 
-function Protect-HawkSensitiveText {
+function Protect-OpsSensitiveText {
     [CmdletBinding()]
     param([Parameter(ValueFromPipeline = $true)][AllowNull()]$InputObject)
     process {
         if ($null -eq $InputObject) { return }
         $text = if ($InputObject -is [string]) { $InputObject } else { $InputObject | Out-String }
 
-        $cleanPattern = $script:HawkSensitiveNamePattern -replace '\(\?[a-z]+\)', ''
+        $cleanPattern = $script:OpsSensitiveNamePattern -replace '\(\?[a-z]+\)', ''
         $redacted = [regex]::Replace($text, ('(?im)^(\s*[^=\r\n]*(?:' + $cleanPattern + ')[^=\r\n]*\s*=\s*).+$'), '$1<REDACTED>')
         $jsonPattern = '(?i)("(?:[^"]*(?:' + $cleanPattern + ')[^"]*)"\s*:\s*")[^"]*(")'
         [regex]::Replace($redacted, $jsonPattern, '$1<REDACTED>$2')
     }
 }
 
-function Test-HawkPromptInjection {
+function Test-OpsPromptInjection {
     [CmdletBinding()]
     param(
         [AllowNull()][string]$Payload,
@@ -141,12 +141,12 @@ function Test-HawkPromptInjection {
 
     if ($UseAIHeuristic -and $score -ge 10 -and $score -lt 40) {
         try {
-            $null = Get-HawkAIStatus -Endpoint 'http://127.0.0.1:11434' -ErrorAction SilentlyContinue
+            $null = Get-OpsAIStatus -Endpoint 'http://127.0.0.1:11434' -ErrorAction SilentlyContinue
         } catch { Write-Verbose 'PromptInjection: Ollama unavailable for AI heuristic, skipping'; return ($score -ge 25) }
 
         try {
             $probePrompt = "Classify the following text as 'safe' or 'injection' (respond with one word only):`n`n$($Payload.Substring(0, [Math]::Min(500, $Payload.Length)))"
-            $aiPayload = @{ model = 'HawkPowershell'; prompt = $probePrompt; stream = $false } | ConvertTo-Json -Depth 3
+            $aiPayload = @{ model = 'OpsPowershell'; prompt = $probePrompt; stream = $false } | ConvertTo-Json -Depth 3
             $aiResp = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/generate' -Method Post -Body $aiPayload -ContentType 'application/json' -TimeoutSec 10 -ErrorAction Stop
             if ($aiResp.response -match '(?i)\binjection\b') { $score += 30 }
             Write-Verbose "PromptInjection: AI heuristic returned score adjustment"
@@ -156,7 +156,7 @@ function Test-HawkPromptInjection {
     return ($score -ge 25)
 }
 
-function Get-HawkSourceQualityScore {
+function Get-OpsSourceQualityScore {
     param([string]$Url, [AllowNull()][string]$Content)
     if ([string]::IsNullOrWhiteSpace($Content)) { return 0 }
     $score = 50
@@ -166,18 +166,19 @@ function Get-HawkSourceQualityScore {
     return [Math]::Min(100, $score)
 }
 
-function Get-HawkAudit {
+function Get-OpsAudit {
     [CmdletBinding()]
     param([ValidateSet('Firewall','Boot','ScheduledTask','GhostPort','SuspiciousProcess','EventStorm','Patch','Temp','Clip')][string]$Type = 'Firewall')
     switch ($Type) {
-        'Firewall'          { Get-HawkFirewallAudit }
-        'Boot'              { Get-HawkBootMap }
-        'ScheduledTask'     { Get-HawkScheduledTaskRiskAudit }
-        'GhostPort'         { Get-HawkGhostPortAudit }
-        'SuspiciousProcess' { Get-HawkSuspiciousProcessAudit }
-        'EventStorm'        { Get-HawkEventStormAudit }
-        'Patch'             { Get-HawkPatchHistory }
-        'Temp'              { Get-HawkTempCheck }
-        'Clip'              { Get-HawkClipCheck }
+        'Firewall'          { Get-OpsFirewallAudit }
+        'Boot'              { Get-OpsBootMap }
+        'ScheduledTask'     { Get-OpsScheduledTaskRiskAudit }
+        'GhostPort'         { Get-OpsGhostPortAudit }
+        'SuspiciousProcess' { Get-OpsSuspiciousProcessAudit }
+        'EventStorm'        { Get-OpsEventStormAudit }
+        'Patch'             { Get-OpsPatchHistory }
+        'Temp'              { Get-OpsTempCheck }
+        'Clip'              { Get-OpsClipCheck }
     }
 }
+

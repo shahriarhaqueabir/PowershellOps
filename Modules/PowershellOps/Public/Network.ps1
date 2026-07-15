@@ -1,13 +1,13 @@
 # ── PUBLIC: NETWORK FUNCTIONS ──────────────────────────────────────────────
 
-function Get-HawkNetCheck {
+function Get-OpsNetCheck {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingComputerNameHardcoded', '')]
     [CmdletBinding()]
     param()
     [PSCustomObject]@{ Internet = (Test-Connection -ComputerName 1.1.1.1 -Count 1 -Quiet -ErrorAction SilentlyContinue) }
 }
 
-function Get-HawkWifi {
+function Get-OpsWifi {
     $raw = netsh wlan show interfaces 2>$null | Out-String
     if (-not $raw) { return [PSCustomObject]@{ SSID = 'N/A'; Signal = 'N/A' } }
     $ssid = if ($raw -match 'SSID\s+:\s+(.+)') { $matches[1].Trim() } else { 'Disconnected' }
@@ -15,7 +15,7 @@ function Get-HawkWifi {
     [PSCustomObject]@{ SSID = $ssid; SignalPercent = $signal }
 }
 
-function Get-HawkEstablished {
+function Get-OpsEstablished {
     if (-not (Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue)) {
         return [PSCustomObject]@{ Connections = 'N/A - NetTCPConnection cmdlet unavailable' }
     }
@@ -24,7 +24,7 @@ function Get-HawkEstablished {
         Sort-Object RemoteAddress | Select-Object -First 20
 }
 
-function Get-HawkDnsBench {
+function Get-OpsDnsBench {
     $resolvers = [ordered]@{ '1.1.1.1' = 'Cloudflare'; '8.8.8.8' = 'Google'; '9.9.9.9' = 'Quad9' }
     foreach ($server in $resolvers.Keys) {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -38,7 +38,7 @@ function Get-HawkDnsBench {
     }
 }
 
-function Get-HawkDnsCache {
+function Get-OpsDnsCache {
     if (-not (Get-Command Get-DnsClientCache -ErrorAction SilentlyContinue)) {
         return [PSCustomObject]@{ Entry = 'N/A'; Status = 'Cmdlet unavailable' }
     }
@@ -47,7 +47,7 @@ function Get-HawkDnsCache {
         Sort-Object TimeToLive | Select-Object -First 20
 }
 
-function Get-HawkLinkSpeed {
+function Get-OpsLinkSpeed {
     if (-not (Get-Command Get-NetAdapter -ErrorAction SilentlyContinue)) {
         return [PSCustomObject]@{ Name = 'N/A'; LinkSpeed = 'N/A' }
     }
@@ -55,9 +55,9 @@ function Get-HawkLinkSpeed {
         Select-Object Name, @{N='LinkSpeed';E={$_.LinkSpeed}}, InterfaceDescription, MacAddress
 }
 
-function Get-HawkShare { Get-CimInstance Win32_Share | Select-Object Name, Path, Description }
+function Get-OpsShare { Get-CimInstance Win32_Share | Select-Object Name, Path, Description }
 
-function Get-HawkHostsCheck {
+function Get-OpsHostsCheck {
     Get-Content "$env:windir\system32\drivers\etc\hosts" -ErrorAction SilentlyContinue |
         Where-Object { $_ -match '^\s*[^#]' -and $_ -match '\S' } |
         ForEach-Object {
@@ -66,24 +66,24 @@ function Get-HawkHostsCheck {
         }
 }
 
-function Get-HawkNetworkTriage { Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled=True" | Select-Object Description, IPAddress, MACAddress }
+function Get-OpsNetworkTriage { Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled=True" | Select-Object Description, IPAddress, MACAddress }
 
-function Get-HawkNetwork {
+function Get-OpsNetwork {
     [CmdletBinding()]
     param([ValidateSet('NetCheck','Wifi','DnsBench','LinkSpeed','Share','HostsCheck','DnsCache','Triage')][string]$Type = 'NetCheck')
     switch ($Type) {
-        'NetCheck'   { Get-HawkNetCheck }
-        'Wifi'       { Get-HawkWifi }
-        'DnsBench'   { Get-HawkDnsBench }
-        'LinkSpeed'  { Get-HawkLinkSpeed }
-        'Share'      { Get-HawkShare }
-        'HostsCheck' { Get-HawkHostsCheck }
-        'DnsCache'   { Get-HawkDnsCache }
-        'Triage'     { Get-HawkNetworkTriage }
+        'NetCheck'   { Get-OpsNetCheck }
+        'Wifi'       { Get-OpsWifi }
+        'DnsBench'   { Get-OpsDnsBench }
+        'LinkSpeed'  { Get-OpsLinkSpeed }
+        'Share'      { Get-OpsShare }
+        'HostsCheck' { Get-OpsHostsCheck }
+        'DnsCache'   { Get-OpsDnsCache }
+        'Triage'     { Get-OpsNetworkTriage }
     }
 }
 
-function Resolve-HawkDuckDuckGoHref {
+function Resolve-OpsDuckDuckGoHref {
     param([string]$Href)
     if (-not $Href) { return $null }
     if ($Href -match 'uddg=([^&]+)') { return [Uri]::UnescapeDataString($matches[1]) }
@@ -92,7 +92,7 @@ function Resolve-HawkDuckDuckGoHref {
     return $null
 }
 
-function Invoke-HawkSearch {
+function Invoke-OpsSearch {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', 'Intentional rate-limiting state')]
     [CmdletBinding()]
     param(
@@ -109,13 +109,13 @@ function Invoke-HawkSearch {
 
     $minIntervalSeconds = 5
     $now = Get-Date
-    if ($script:HawkLastSearchTime) {
-        $elapsed = ($now - $script:HawkLastSearchTime).TotalSeconds
+    if ($script:OpsLastSearchTime) {
+        $elapsed = ($now - $script:OpsLastSearchTime).TotalSeconds
         if ($elapsed -lt $minIntervalSeconds) {
             Start-Sleep -Seconds ([int]($minIntervalSeconds - $elapsed))
         }
     }
-    $script:HawkLastSearchTime = Get-Date
+    $script:OpsLastSearchTime = Get-Date
 
     $cleanTokens = $Query | Where-Object { $_ -notmatch '^-(AI|a|Deep|Engine|e|Sources)$' }
     $jq = ($cleanTokens -join ' ').Trim()
@@ -134,17 +134,17 @@ function Invoke-HawkSearch {
     }
 
     if (-not $AI) {
-        Write-HawkHeader " [Search] Spawning Context [$Engine] -> $jq" Cyan
+        Write-OpsHeader " [Search] Spawning Context [$Engine] -> $jq" Cyan
         Start-Process $urls[$Engine]
         return
     }
 
-    Write-HawkHeader " [Search] Processing Link Nodes for: $jq" Cyan
+    Write-OpsHeader " [Search] Processing Link Nodes for: $jq" Cyan
     try {
         $resp = Invoke-WebRequest -Uri 'https://lite.duckduckgo.com/lite/' -Method Post -Body @{ q = $jq } -UseBasicParsing -ErrorAction Stop
 
         $targetUrls = [regex]::Matches($resp.Content, 'href="([^"]+)"') | ForEach-Object { $_.Groups[1].Value } |
-            Where-Object { $_ -match 'uddg=' } | ForEach-Object { Resolve-HawkDuckDuckGoHref -Href $_ } |
+            Where-Object { $_ -match 'uddg=' } | ForEach-Object { Resolve-OpsDuckDuckGoHref -Href $_ } |
             Where-Object { $_ -and $_ -notmatch '^https?://(www\.)?duckduckgo\.com' } | Select-Object -Unique -First 30
 
         if (-not $targetUrls) { Start-Process $urls[$Engine]; return }
@@ -155,7 +155,7 @@ function Invoke-HawkSearch {
 
         foreach ($u in $targetUrls) {
             if ($read -ge $targetCount) { break }
-            Write-HawkHeader "  [Read] Processing structural node: $u" DarkGray
+            Write-OpsHeader "  [Read] Processing structural node: $u" DarkGray
 
             $page = $null
             $maxRetries = 2
@@ -173,21 +173,21 @@ function Invoke-HawkSearch {
 
             $contentType = $page.BaseResponse.ContentType
             if ($contentType -notmatch 'text/html|application/xhtml\+xml') {
-                Write-HawkHeader "  [Validation Warning] Skipping binary content payload: $contentType" Yellow
+                Write-OpsHeader "  [Validation Warning] Skipping binary content payload: $contentType" Yellow
                 continue
             }
 
             $txt = [System.Net.WebUtility]::HtmlDecode(($page.Content -replace '(?s)<style[^>]*>.*?</style>', '' -replace '(?s)<script[^>]*>.*?</script>', '' -replace '<[^>]+>', ' ').Trim()) -replace '\s+', ' '
             if ([string]::IsNullOrWhiteSpace($txt)) { continue }
 
-            if (Test-HawkPromptInjection -Payload $txt) {
-                Write-HawkHeader "  [Security Triggered] High anomaly metric identified inside text layout node. Node isolated." Red
+            if (Test-OpsPromptInjection -Payload $txt) {
+                Write-OpsHeader "  [Security Triggered] High anomaly metric identified inside text layout node. Node isolated." Red
                 continue
             }
 
-            $qualityScore = Get-HawkSourceQualityScore -Url $u -Content $txt
+            $qualityScore = Get-OpsSourceQualityScore -Url $u -Content $txt
             if ($qualityScore -lt 40) {
-                Write-HawkHeader "  [Quality Check Failed] Payload score ($qualityScore/100) below threshold of 40. Skipping." Yellow
+                Write-OpsHeader "  [Quality Check Failed] Payload score ($qualityScore/100) below threshold of 40. Skipping." Yellow
                 continue
             }
 
@@ -199,14 +199,14 @@ function Invoke-HawkSearch {
         }
 
         if ($DryRun) {
-            Write-HawkHeader "  [Dry-Run] Target URLs to be scraped:" Yellow
+            Write-OpsHeader "  [Dry-Run] Target URLs to be scraped:" Yellow
             $targetUrls | Select-Object -First $targetCount | ForEach-Object { Write-Host "    - $_" -ForegroundColor DarkGray }
-            Write-HawkHeader "  [Dry-Run] $read URLs resolved, $targetCount would be scraped. No requests made." Green
+            Write-OpsHeader "  [Dry-Run] $read URLs resolved, $targetCount would be scraped. No requests made." Green
             return
         }
 
         if ($Background) {
-            Write-HawkHeader "  [Background] Spawning detached background job (Start-Job) ..." Yellow
+            Write-OpsHeader "  [Background] Spawning detached background job (Start-Job) ..." Yellow
             $contextFile = [System.IO.Path]::GetTempFileName()
             $context | Out-File -FilePath $contextFile -Encoding UTF8 -Force
             $moduleManifest = Join-Path $PSScriptRoot 'PowershellOps.psd1'
@@ -215,19 +215,20 @@ function Invoke-HawkSearch {
                 try {
                     Import-Module $ModPath -Force -ErrorAction Stop
                     $ctx = Get-Content $CtxFile -Raw -ErrorAction Stop
-                    $ctx | Invoke-HawkAI -Instruction $Instr
+                    $ctx | Invoke-OpsAI -Instruction $Instr
                 } catch { Write-Warning "Background job error: $($_.Exception.Message)" }
                 finally { Remove-Item $CtxFile -Force -ErrorAction SilentlyContinue }
             }
             $job = Start-Job -ScriptBlock $sb -ArgumentList $contextFile, $Instruction, $moduleManifest, $BackgroundTimeoutSec
-            Write-HawkHeader "  [Background] Background job started (ID: $($job.Id)). Results arrive in background." Green
-            Write-HawkHeader "  [Background] Use: Receive-Job -Id $($job.Id) [-Keep] | Wait-Job -Id $($job.Id)" DarkGray
+            Write-OpsHeader "  [Background] Background job started (ID: $($job.Id)). Results arrive in background." Green
+            Write-OpsHeader "  [Background] Use: Receive-Job -Id $($job.Id) [-Keep] | Wait-Job -Id $($job.Id)" DarkGray
             return
         }
 
             if ($read -eq 0) { Start-Process $urls[$Engine]; return }
-            Write-HawkHeader '  [AI] Synthesizing engines across checked endpoints...' Magenta
-            $context | Invoke-HawkAI -Instruction $Instruction
+            Write-OpsHeader '  [AI] Synthesizing engines across checked endpoints...' Magenta
+            $context | Invoke-OpsAI -Instruction $Instruction
         } catch { Start-Process $urls[$Engine] }
 }
+
 

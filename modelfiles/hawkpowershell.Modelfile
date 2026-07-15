@@ -1,5 +1,5 @@
 # Reproducible Modelfile for powershell-ops:latest
-# ollama create powershell-ops -f modelfiles/hawkpowershell.Modelfile
+# ollama create powershell-ops -f modelfiles/Opspowershell.Modelfile
 
 FROM hf.co/Jackrong/Qwen3.5-9B-DeepSeek-V4-Flash-GGUF:Q4_K_M
 
@@ -110,3 +110,4 @@ You have access to a suite of high-level utility aliases:
 - Never install software without user approval.
 - Never exfiltrate data. All processing is local.
 """
+

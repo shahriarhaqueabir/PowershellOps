@@ -1,21 +1,21 @@
 # ── PUBLIC: MEMORY FUNCTIONS ───────────────────────────────────────────────
 
-function Get-HawkMemoryFile {
-    if (-not (Test-Path $script:HawkMemoryRoot)) { $null = New-Item -Path $script:HawkMemoryRoot -ItemType Directory -Force }
-    return $script:HawkMemoryFile
+function Get-OpsMemoryFile {
+    if (-not (Test-Path $script:OpsMemoryRoot)) { $null = New-Item -Path $script:OpsMemoryRoot -ItemType Directory -Force }
+    return $script:OpsMemoryFile
 }
 
-function Read-HawkMemory {
-    if (-not (Test-Path $script:HawkMemoryFile)) { return @() }
-    Get-Content -Path $script:HawkMemoryFile -ErrorAction SilentlyContinue | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object {
+function Read-OpsMemory {
+    if (-not (Test-Path $script:OpsMemoryFile)) { return @() }
+    Get-Content -Path $script:OpsMemoryFile -ErrorAction SilentlyContinue | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object {
         try {
             $untypedMap = $_ | ConvertFrom-Json -AsHashtable -ErrorAction Stop
-            [HawkMemoryEntry]::new($untypedMap)
+            [OpsMemoryEntry]::new($untypedMap)
         } catch { Write-Verbose "Memory entry parse skipped: $($_.Exception.Message)" }
     }
 }
 
-function Add-HawkMemory {
+function Add-OpsMemory {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true, Position = 0, ValueFromRemainingArguments = $true)][string[]]$Text,
@@ -29,32 +29,32 @@ function Add-HawkMemory {
     if (-not $joined) { throw 'Payload buffer verification empty.' }
 
     $map = [hashtable]@{
-        Id         = Format-HawkMemoryId
+        Id         = Format-OpsMemoryId
         Type       = $Type
         Tags       = @($Tag)
-        Text       = ($joined | Protect-HawkSensitiveText | Out-String).Trim()
+        Text       = ($joined | Protect-OpsSensitiveText | Out-String).Trim()
         Source     = $Source
         Created    = (Get-Date).ToString('o')
         Confidence = $Confidence
         Pinned     = [bool]$Pinned
     }
 
-    if ($PSCmdlet.ShouldProcess("Memory entry: $(Format-HawkMemorySnippet -Text $joined)", 'Save memory')) {
-        $typedInstance = [HawkMemoryEntry]::new($map)
-        ($typedInstance | ConvertTo-Json -Compress -Depth 6) | Add-Content -Path (Get-HawkMemoryFile) -Encoding UTF8
+    if ($PSCmdlet.ShouldProcess("Memory entry: $(Format-OpsMemorySnippet -Text $joined)", 'Save memory')) {
+        $typedInstance = [OpsMemoryEntry]::new($map)
+        ($typedInstance | ConvertTo-Json -Compress -Depth 6) | Add-Content -Path (Get-OpsMemoryFile) -Encoding UTF8
         return $typedInstance
     }
 }
 
-function Search-HawkMemory {
+function Search-OpsMemory {
     [CmdletBinding()] param([Parameter(Position = 0, ValueFromRemainingArguments = $true)][string[]]$Query = @(), [int]$First = 8, [switch]$Pinned)
     $queryText = ($Query -join ' ').Trim()
-    $items = @(Read-HawkMemory)
+    $items = @(Read-OpsMemory)
     if ($Pinned) { $items = @($items | Where-Object { $_.Pinned }) }
     if (-not $items) { return }
     if (-not $queryText) { $items | Sort-Object Created -Descending | Select-Object -First $First; return }
 
-    $terms = @(Get-HawkMemorySearchTerm -Text $queryText)
+    $terms = @(Get-OpsMemorySearchTerm -Text $queryText)
     if (-not $terms) { $items | Sort-Object Created -Descending | Select-Object -First $First; return }
 
     @(foreach ($item in $items) {
@@ -78,10 +78,11 @@ function Search-HawkMemory {
     }) | Sort-Object @{ Expression = 'Score'; Descending = $true }, @{ Expression = 'Created'; Descending = $true } | Select-Object -First $First
 }
 
-function Get-HawkMemoryMap {
+function Get-OpsMemoryMap {
     param([string]$Tag, [switch]$Pinned, [int]$First = 40)
-    $items = @(Read-HawkMemory)
+    $items = @(Read-OpsMemory)
     if ($Pinned) { $items = @($items | Where-Object { $_.Pinned }) }
     if ($Tag) { $items = @($items | Where-Object { $_.Tags -and @($_.Tags) -contains $Tag }) }
     $items | Sort-Object Created -Descending | Select-Object -First $First
 }
+
