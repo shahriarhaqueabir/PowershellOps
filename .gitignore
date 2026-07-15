@@ -106,3 +106,4 @@ hawk-test-results.xml
  }
 nul
 __final_check.ps1
+.hawk_first_run
