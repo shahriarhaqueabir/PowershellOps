@@ -94,11 +94,9 @@ function Show-OpsDashboard {
     $aiStatus = try { $null = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 2 -ErrorAction Stop; 'ACTIVE' } catch { 'OFFLINE' }
     $pRoot = $global:OpsProjectRoot ?? $script:OpsDefaultProjectRoot
     $cWidth = try { [Console]::WindowWidth } catch { 120 }
-    if ($cWidth -lt 80) { $cWidth = 80 }
+    if ($cWidth -lt 100) { $cWidth = 100 }
 
     $isNerd = Test-OpsNerdFont
-    $sep = if ($isNerd) { '' } else { '>' }
-    $rsep = if ($isNerd) { '' } else { '<' }
 
     # Soft Pastel Palette (256-color ANSI)
     $c = @{
@@ -110,15 +108,10 @@ function Show-OpsDashboard {
         Net    = "153" # Sky Blue
         Aim    = "183" # Lavender
         Run    = "230" # Champagne
-        Env    = "158" # Mint (Reusing Mint for ENV)
-        Cfg    = "246" # Gray for CORE/Config
+        Env    = "158" # Mint
+        Cfg    = "246" # Gray
+        Bord   = "242" # Border Gray
     }
-
-    # Header Segment
-    Write-Host "`n"
-    Write-Host " ${esc}[48;5;$($c.Core)m${esc}[38;5;16m Ops : CORE ${reset}${esc}[38;5;$($c.Core)m${esc}[48;5;$($c.Vers)m$sep${reset}" -NoNewline
-    Write-Host "${esc}[38;5;15m v$script:OpsVersion ${reset}${esc}[38;5;$($c.Vers)m${esc}[48;5;$($c.AI)m$sep${reset}" -NoNewline
-    Write-Host "${esc}[38;5;16m AI: $aiStatus ${reset}${esc}[38;5;$($c.AI)m$sep${reset}"
 
     $categories = @(
         @{ Icon = '󰒓'; Name = 'SYSTEM';      Bg = $c.Sys; Cmds = @('corehealth','sysspec','sysuptime','ramstats','battstatus','gpuview','powertriage','vmcheck','liccheck','diskpressure','tempcheck','clipcheck','smartstatus','resourcemap','portmap','sysdiag') }
@@ -130,38 +123,80 @@ function Show-OpsDashboard {
         @{ Icon = '󰅟'; Name = 'CORE';        Bg = $c.Cfg; Cmds = @('projview','projset','openhere','corecache','coreindex','watchindex','corereload','coreinit','coremanual') }
     )
 
-    $headerWidth = 16
+    $headerWidth = 18
     $colWidth = 16
+    $maxLineCmds = [Math]::Floor(($cWidth - $headerWidth - 10) / $colWidth)
+    if ($maxLineCmds -lt 1) { $maxLineCmds = 1 }
+    $boxWidth = 25 + ($maxLineCmds * $colWidth)
 
+    # 1. TOP FRAME
+    Write-Host "`n  ${esc}[38;5;$($c.Bord)m┌$($('─' * ($boxWidth - 2)))┐${reset}"
+
+    # 2. BRANDING HEADER
+    $brandText = " Ops : CORE "
+    $verText   = " v$script:OpsVersion "
+    $aiText    = " AI: $aiStatus "
+    Write-Host "  ${esc}[38;5;$($c.Bord)m│${reset} " -NoNewline
+    Write-Host "${esc}[48;5;$($c.Core);38;5;16m$brandText${reset} " -NoNewline
+    Write-Host "${esc}[38;5;$($c.Vers)m$verText${reset} " -NoNewline
+    Write-Host "${esc}[38;5;$($c.AI)m$aiText${reset}" -NoNewline
+    $headerLen = $brandText.Length + $verText.Length + $aiText.Length + 4
+    Write-Host (" " * ($boxWidth - $headerLen - 2)) -NoNewline
+    Write-Host "${esc}[38;5;$($c.Bord)m│${reset}"
+
+    Write-Host "  ${esc}[38;5;$($c.Bord)m├$($('─' * ($headerWidth + 2)))┬$($('─' * ($boxWidth - $headerWidth - 5)))┤${reset}"
+
+    # 3. CATEGORIES & GRIDS
     foreach ($cat in $categories) {
-        $icon = if ($isNerd) { $cat.Icon } else { '' }
+        $icon = if ($isNerd) { $cat.Icon } else { '•' }
         $label = "$icon $($cat.Name)".Trim()
 
-        # Left Header Column
-        Write-Host " ${esc}[48;5;$($cat.Bg)m${esc}[38;5;16m $($label.PadRight($headerWidth - 1)) ${reset}" -NoNewline
-        Write-Host "${esc}[38;5;$($cat.Bg)m$sep${reset} " -NoNewline
-
         $lineCmds = 0
-        $maxLineCmds = [Math]::Floor(($cWidth - $headerWidth - 6) / $colWidth)
+        $firstLine = $true
 
         for ($i = 0; $i -lt $cat.Cmds.Count; $i++) {
-            if ($lineCmds -ge $maxLineCmds) {
-                Write-Host ""
-                Write-Host (" " * $headerWidth) -NoNewline
-                Write-Host "  " -NoNewline
-                $lineCmds = 0
+            if ($lineCmds -eq 0) {
+                if (-not $firstLine) {
+                    Write-Host (" " * ($boxWidth - ($maxLineCmds * $colWidth) - $headerWidth - 5)) -NoNewline
+                    Write-Host "${esc}[38;5;$($c.Bord)m│${reset}"
+                }
+                Write-Host "  ${esc}[38;5;$($c.Bord)m│${reset} " -NoNewline
+                if ($firstLine) {
+                    Write-Host "${esc}[38;5;$($cat.Bg)m$($label.PadRight($headerWidth))${reset} ${esc}[38;5;$($c.Bord)m│${reset} " -NoNewline
+                } else {
+                    Write-Host (" " * $headerWidth) -NoNewline
+                    Write-Host " ${esc}[38;5;$($c.Bord)m│${reset} " -NoNewline
+                }
+                $firstLine = $false
             }
+
             Write-Host ($cat.Cmds[$i].PadRight($colWidth)) -NoNewline -ForegroundColor White
             $lineCmds++
+
+            if ($lineCmds -eq $maxLineCmds) {
+                $lineCmds = 0
+            }
         }
-        Write-Host ""
+
+        # Padding for the last line of a category
+        if ($lineCmds -gt 0) {
+            Write-Host (" " * (($maxLineCmds - $lineCmds) * $colWidth)) -NoNewline
+        }
+        Write-Host (" " * ($boxWidth - ($maxLineCmds * $colWidth) - $headerWidth - 5)) -NoNewline
+        Write-Host "${esc}[38;5;$($c.Bord)m│${reset}"
+
+        if ($cat.Name -ne 'CORE') {
+            Write-Host "  ${esc}[38;5;$($c.Bord)m├$($('─' * ($headerWidth + 2)))┼$($('─' * ($boxWidth - $headerWidth - 5)))┤${reset}"
+        }
     }
 
-    # Environment Footer
-    Write-Host "`n " -NoNewline
-    Write-Host "${esc}[38;5;$($c.Cfg)m$rsep${reset}" -NoNewline
-    Write-Host "${esc}[48;5;$($c.Cfg)m${esc}[38;5;15m ENV: ${reset}" -NoNewline
-    Write-Host "${esc}[48;5;238m${esc}[38;5;250m  $($pRoot)  ${reset}${esc}[38;5;238m$sep${reset}"
+    # 4. FOOTER FRAME
+    Write-Host "  ${esc}[38;5;$($c.Bord)m├$($('─' * ($boxWidth - 2)))┤${reset}"
+    $envLabel = " ENV: $pRoot "
+    Write-Host "  ${esc}[38;5;$($c.Bord)m│${reset} " -NoNewline
+    Write-Host $envLabel.PadRight($boxWidth - 4) -ForegroundColor DarkGray -NoNewline
+    Write-Host " ${esc}[38;5;$($c.Bord)m│${reset}"
+    Write-Host "  ${esc}[38;5;$($c.Bord)m└$($('─' * ($boxWidth - 2)))┘${reset}"
 }
 
 function Watch-OpsDashboard {
