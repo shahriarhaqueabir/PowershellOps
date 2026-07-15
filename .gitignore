@@ -10,6 +10,7 @@ hawk-test-results.xml
 # ─────────────────────────────────────────────
 # LOCAL CONTEXT & MEMORY
 # ─────────────────────────────────────────────
+docs/
 Memory/
 AI/TestMemory/
 .idea/
