@@ -30,11 +30,14 @@ function ConvertTo-HawkReportMarkdown {
 function Write-HawkReportTable {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', 'Intentional console table rendering')]
     [CmdletBinding()]
-    param([string]$Title, [hashtable[]]$Columns, [object[]]$InputObject = @(), [string]$Icon = '•', [ConsoleColor]$Color = 'Cyan', [int]$MaxRows = 0)
+    param([string]$Title, [hashtable[]]$Columns, [object[]]$InputObject = @(), [string]$Icon = '•', [string]$AnsiColor = '153', [int]$MaxRows = 0)
     $rows = @($InputObject | Where-Object { $null -ne $_ }); $vRows = if ($MaxRows -gt 0) { @($rows | Select-Object -First $MaxRows) } else { $rows }
     $w = (($Columns | ForEach-Object { [int]$_.Width } | Measure-Object -Sum).Sum + (($Columns.Count - 1) * 2))
-    Write-Host "`n  $Icon $Title" -ForegroundColor $Color; Write-Host "  $('─' * [Math]::Max(1, $w))" -ForegroundColor DarkGray
-    if (-not $rows) { Write-Host '  ✓ Evaluation parameters stable. No actionable telemetry.' -ForegroundColor Green; return }
+    $esc = [char]27
+    $reset = "${esc}[0m"
+    Write-Host "`n  ${esc}[48;5;$AnsiColor;38;5;16m $Icon $Title ${reset}"
+    Write-Host "  ${esc}[38;5;246m$('─' * [Math]::Max(1, $w))${reset}"
+    if (-not $rows) { Write-Host "  ${esc}[38;5;158m✓ Evaluation parameters stable. No actionable telemetry.${reset}"; return }
     Write-Host ('  ' + (($Columns | ForEach-Object { $hdr = if ($_.Label) { $_.Label } else { $_.Name }; Format-HawkReportCell -Text ($hdr) -Width ([int]$_.Width) }) -join '  ')) -ForegroundColor DarkGray
     foreach ($r in $vRows) {
         Write-Host ('  ' + (($Columns | ForEach-Object {
@@ -67,14 +70,15 @@ function New-HawkReport {
             Set-Content -Path $outPath -Value $md -Encoding UTF8
         }
 
-        Write-HawkReportTable -Title 'AI Engine Node Status' -Icon '🤖' -Color Magenta -InputObject $report.AI -Columns @(@{Name='Endpoint';Width=20},@{Name='Status';Width=12},@{Name='Model';Width=20})
-        Write-HawkReportTable -Title 'System Volume State' -Icon '▰' -Color Yellow -InputObject $report.Disk -Columns @(@{Name='DeviceID';Width=8},@{Name='SizeGB';Width=9},@{Name='FreeGB';Width=9},@{Name='FreePercent';Width=12})
-        Write-HawkReportTable -Title 'Active Engine Consumer Workspace' -Icon '▤' -Color Red -InputObject $report.Resources -Columns @(@{Name='ProcessName';Width=18},@{Name='Id';Width=7},@{Name='RAMMB';Width=8},@{Name='CPUSec';Width=8})
-        Write-HawkReportTable -Title 'Assigned Interface Socket Network Map' -Icon '◦' -Color Cyan -InputObject $report.Ports -Columns @(@{Name='Port';Width=6},@{Name='PID';Width=6},@{Name='Process';Width=18})
-        Write-HawkReportTable -Title 'Threat Vector Firewall Gaps' -Icon '▣' -Color DarkYellow -InputObject $report.FirewallGaps -Columns @(@{Name='Port';Width=6},@{Name='PID';Width=6},@{Name='Process';Width=18},@{Name='Status';Width=40})
-        Write-HawkReportTable -Title 'Platform Persistence Startup Hooks' -Icon '⌂' -Color Blue -InputObject $report.Startup -Columns @(@{Name='Hive';Width=6},@{Name='Name';Width=15},@{Name='Target';Width=45})
-        Write-HawkReportTable -Title 'Automated Execution Risk Vectors' -Icon '⌁' -Color DarkYellow -InputObject $report.ScheduledTaskRisks -Columns @(@{Name='TaskName';Width=20},@{Name='Path';Width=30})
-        Write-HawkReportTable -Title 'System Log Notification Storm Events' -Icon '↯' -Color DarkRed -InputObject $report.EventStorms -Columns @(@{Name='Count';Width=6},@{Name='Name';Width=6},@{Name='Source';Width=20})
+        # Pastel Colors: AI=183(Lavender), Sys=158(Mint), Sec=217(Coral), Net=153(Sky), Run=230(Champagne)
+        Write-HawkReportTable -Title 'AI Engine Node Status' -Icon '🤖' -AnsiColor '183' -InputObject $report.AI -Columns @(@{Name='Endpoint';Width=20},@{Name='Status';Width=12},@{Name='Model';Width=20})
+        Write-HawkReportTable -Title 'System Volume State' -Icon '▰' -AnsiColor '158' -InputObject $report.Disk -Columns @(@{Name='DeviceID';Width=8},@{Name='SizeGB';Width=9},@{Name='FreeGB';Width=9},@{Name='FreePercent';Width=12})
+        Write-HawkReportTable -Title 'Active Engine Consumer Workspace' -Icon '▤' -AnsiColor '217' -InputObject $report.Resources -Columns @(@{Name='ProcessName';Width=18},@{Name='Id';Width=7},@{Name='RAMMB';Width=8},@{Name='CPUSec';Width=8})
+        Write-HawkReportTable -Title 'Assigned Interface Socket Network Map' -Icon '◦' -AnsiColor '153' -InputObject $report.Ports -Columns @(@{Name='Port';Width=6},@{Name='PID';Width=6},@{Name='Process';Width=18})
+        Write-HawkReportTable -Title 'Threat Vector Firewall Gaps' -Icon '▣' -AnsiColor '217' -InputObject $report.FirewallGaps -Columns @(@{Name='Port';Width=6},@{Name='PID';Width=6},@{Name='Process';Width=18},@{Name='Status';Width=40})
+        Write-HawkReportTable -Title 'Platform Persistence Startup Hooks' -Icon '⌂' -AnsiColor '158' -InputObject $report.Startup -Columns @(@{Name='Hive';Width=6},@{Name='Name';Width=15},@{Name='Target';Width=45})
+        Write-HawkReportTable -Title 'Automated Execution Risk Vectors' -Icon '⌁' -AnsiColor '217' -InputObject $report.ScheduledTaskRisks -Columns @(@{Name='TaskName';Width=20},@{Name='Path';Width=30})
+        Write-HawkReportTable -Title 'System Log Notification Storm Events' -Icon '↯' -AnsiColor '217' -InputObject $report.EventStorms -Columns @(@{Name='Count';Width=6},@{Name='Name';Width=6},@{Name='Source';Width=20})
         return
     }
     $output = if ($Format -eq 'Json') { $report | ConvertTo-Json -Depth 8 } else { $md }
@@ -85,97 +89,74 @@ function Show-HawkDashboard {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', 'Intentional user-facing config')]
     [CmdletBinding()]
     param()
-    $aiStatus = try { $null = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 2 -ErrorAction Stop; 'ACTIVE' } catch { 'STANDBY' }
-    $pRoot = if ($global:HawkProjectRoot) { $global:HawkProjectRoot } else { $script:HawkDefaultProjectRoot }
-    $fit = { param([string]$Text, [int]$Width) if ($Width -le 0) { '' }; if ($null -eq $Text) { '' }; if ($Text.Length -gt $Width) { return $Text.Substring(0, $Width - 1) + '…' }; $Text.PadRight($Width) }
+    $esc = [char]27
+    $reset = "${esc}[0m"
+    $aiStatus = try { $null = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 2 -ErrorAction Stop; 'ACTIVE' } catch { 'OFFLINE' }
+    $pRoot = $global:HawkProjectRoot ?? $script:HawkDefaultProjectRoot
+    $cWidth = [Math]::Max(80, (try { [Console]::WindowWidth } catch { 120 }))
 
-    $cWidth = try { [Console]::WindowWidth } catch { 120 }; if ($cWidth -lt 1) { $cWidth = 120 }
-    $dbWidth = [Math]::Max(78, [Math]::Min(($cWidth - 4), 150)); $boxTextWidth = $dbWidth - 2; $gap = '  '
-    $colCount = if ($dbWidth -ge 116) { 4 } elseif ($dbWidth -ge 76) { 2 } else { 1 }
-    $colWidth = [int][Math]::Floor(($dbWidth - (($colCount - 1) * $gap.Length)) / $colCount); $rule = '─' * $dbWidth
+    $isNerd = Test-HawkNerdFont
+    $sep = if ($isNerd) { '' } else { '>' }
+    $rsep = if ($isNerd) { '' } else { '<' }
 
-    Write-Host "`n  ╭$rule╮" -ForegroundColor DarkGray
-    Write-Host '  │ ' -NoNewline -ForegroundColor DarkGray
-    Write-Host (& $fit "🦅 HAWKWARD HYBRID $script:HawkVersion · ALL COMMANDS" $boxTextWidth) -ForegroundColor Cyan -NoNewline
-    Write-Host ' │' -ForegroundColor DarkGray
-    Write-Host "  ├$rule┤" -ForegroundColor DarkGray
-    Write-Host '  │ ' -NoNewline -ForegroundColor DarkGray
-    Write-Host (& $fit "AI: $aiStatus    |    Workspace: $pRoot" $boxTextWidth) -ForegroundColor DarkGray -NoNewline
-    Write-Host ' │' -ForegroundColor DarkGray
-    Write-Host "  ╰$rule╯`n" -ForegroundColor DarkGray
+    # Soft Pastel Palette (256-color ANSI)
+    $c = @{
+        Core   = "158" # Mint
+        Vers   = "246" # Soft Gray
+        AI     = "153" # Sky Blue
+        Sys    = "158" # Mint
+        Sec    = "217" # Soft Coral
+        Net    = "153" # Sky Blue
+        Aim    = "183" # Lavender
+        Run    = "230" # Champagne
+        Env    = "244" # Medium Gray
+    }
 
-    $aliases = @{}
-    Get-Alias | Where-Object { $_.Definition -match '^(Get|Invoke|Add|Search|Read|Test|Set|New|Update|Build|Format|Convert|Protect|Resolve|Show|Watch|Write)-Hawk' } | ForEach-Object { $aliases[$_.Definition] = $_.Name }
+    # Header Segment
+    Write-Host "`n"
+    Write-Host " ${esc}[48;5;$($c.Core)m${esc}[38;5;16m HAWK : CORE ${reset}${esc}[38;5;$($c.Core)m${esc}[48;5;$($c.Vers)m$sep${reset}" -NoNewline
+    Write-Host "${esc}[38;5;15m v$script:HawkVersion ${reset}${esc}[38;5;$($c.Vers)m${esc}[48;5;$($c.AI)m$sep${reset}" -NoNewline
+    Write-Host "${esc}[38;5;16m AI: $aiStatus ${reset}${esc}[38;5;$($c.AI)m$sep${reset}"
 
     $categories = @(
-        @{ Name = '🖥️ SYSTEM'; Color = 'Cyan'; Sub = @(
-            @{ Name = 'Health'; Cmd = @('Get-HawkHealth','Get-HawkSpec','Get-HawkUptime') }
-            @{ Name = 'Hardware'; Cmd = @('Get-HawkRamInfo','Get-HawkBattery','Get-HawkDisplay','Get-HawkHypervisor','Get-HawkPower','Get-HawkLicense') }
-            @{ Name = 'Storage'; Cmd = @('Get-HawkDiskPressureAudit','Get-HawkTempCheck','Get-HawkClipCheck','Get-HawkDriveHealth') }
-            @{ Name = 'Perf'; Cmd = @('Get-HawkResourceMap','Get-HawkPortMap') }
-        )}
-        @{ Name = '🛡️ SECURITY'; Color = 'Red'; Sub = @(
-            @{ Name = 'Access'; Cmd = @('Get-HawkAdmin','Get-HawkShield') }
-            @{ Name = 'Firewall'; Cmd = @('Get-HawkFirewallAudit') }
-            @{ Name = 'Persistence'; Cmd = @('Get-HawkBootMap','Get-HawkScheduledTaskRiskAudit') }
-            @{ Name = 'Anomalies'; Cmd = @('Get-HawkGhostPortAudit','Get-HawkSuspiciousProcessAudit','Get-HawkEventStormAudit') }
-            @{ Name = 'Inventory'; Cmd = @('Get-HawkCert','Get-HawkDump','Get-HawkBadFile','Get-HawkLink','Get-HawkLock','Get-HawkSparseFile','Get-HawkCompressedDir','Get-HawkPatchHistory','Get-HawkDriverAudit','Get-HawkRecent') }
-            @{ Name = 'Redact'; Cmd = @('Protect-HawkSensitiveText') }
-        )}
-        @{ Name = '🌐 NETWORK'; Color = 'Blue'; Sub = @(
-            @{ Name = 'Connectivity'; Cmd = @('Get-HawkNetCheck','Get-HawkWifi','Get-HawkEstablished','Get-HawkDnsBench','Get-HawkDnsCache') }
-            @{ Name = 'Services'; Cmd = @('Get-HawkLinkSpeed','Get-HawkShare','Get-HawkHostsCheck','Get-HawkNetworkTriage') }
-        )}
-        @{ Name = '⚙️ ENV'; Color = 'Yellow'; Sub = @(
-            @{ Name = 'Config'; Cmd = @('Get-HawkEnvMap','Get-HawkPathAudit','Get-HawkApp','Get-HawkAppLocation','Get-HawkProject') }
-        )}
-        @{ Name = '🧠 AI'; Color = 'Magenta'; Sub = @(
-            @{ Name = 'Query'; Cmd = @('Invoke-HawkAI','Invoke-HawkSearch','Test-HawkPromptInjection','Get-HawkAIIntent','Get-HawkAIDataProfile','Get-HawkAIStatus','Get-HawkSourceQualityScore') }
-            @{ Name = 'Memory'; Cmd = @('Add-HawkMemory','Search-HawkMemory','Get-HawkMemoryMap','Read-HawkMemory','Get-HawkMemoryFile','Build-HawkAIMemoryContext','Build-HawkAIContextPacket') }
-        )}
-        @{ Name = '📊 REPORTS'; Color = 'DarkYellow'; Sub = @(
-            @{ Name = 'Generate'; Cmd = @('New-HawkReport','Get-HawkReportPath') }
-        )}
-        @{ Name = '🔧 MODULE'; Color = 'Green'; Sub = @(
-            @{ Name = 'Shell'; Cmd = @('Show-HawkDashboard','Watch-HawkDashboard','Show-HawkManual','Update-HawkProfile') }
-            @{ Name = 'Config'; Cmd = @('Initialize-HawkProfile','Get-HawkProject','Invoke-HawkProject','Invoke-ExplorerHere','Invoke-HawkCachedData') }
-        )}
+        @{ Icon = '󰒓'; Name = 'SYSTEM';   Bg = $c.Sys; Cmds = @('corehealth','sysspec','sysuptime','ramstats','battstatus','gpuview','powertriage','vmcheck','liccheck','diskpressure','tempcheck','clipcheck','smartstatus','resourcemap','portmap') }
+        @{ Icon = '󰒕'; Name = 'SECURITY'; Bg = $c.Sec; Cmds = @('adminaudit','shieldstatus','fwcheck','bootmap','taskrisk','ghostports','susprocs','eventstorm','certaudit','dumpmap','filecheck','shortcutcheck','lockcheck','sparsecheck','compresscheck','patchhistory','driveraudit','recentfiles','secretmask') }
+        @{ Icon = '󰒢'; Name = 'NETWORK';  Bg = $c.Net; Cmds = @('netping','wificheck','peerscheck','dnsbench','netspeed','smbshares','hostscheck','dnsmap','nettriage') }
+        @{ Icon = '󰒙'; Name = 'AI/MEM';   Bg = $c.Aim; Cmds = @('askai','websearch','aistatus','aiintent','aiprofile','sourcequality','safetycheck','airemember','airecall','memorymap','memoryread','memoryfile') }
+        @{ Icon = '󰒖'; Name = 'RUN';      Bg = $c.Run; Cmds = @('dailycheck','sysreview','secaudit','netdiag','threathunt','changeaudit','compliancecheck','fullreport') }
     )
 
-    $sCount = $categories.Count
-    for ($sIdx = 0; $sIdx -lt $sCount; $sIdx += $colCount) {
-        $lIdx = [Math]::Min($sIdx + $colCount - 1, $sCount - 1); $sGrp = @($categories[$sIdx..$lIdx])
+    $headerWidth = 14
+    $colWidth = 16
 
-        $subCount = @($sGrp | ForEach-Object { $_.Sub.Count } | Measure-Object -Maximum).Maximum
+    foreach ($cat in $categories) {
+        $icon = if ($isNerd) { $cat.Icon } else { '' }
+        $label = "$icon $($cat.Name)".Trim()
 
-        Write-Host ("  " + (($sGrp | ForEach-Object { & $fit "$($_.Name) ($($_.Sub.Count))" $colWidth }) -join $gap)) -ForegroundColor Cyan
-        Write-Host ("  " + (($sGrp | ForEach-Object { '─' * $colWidth }) -join $gap)) -ForegroundColor DarkGray
+        Write-Host " ${esc}[48;5;$($cat.Bg)m${esc}[38;5;16m $($label.PadRight($headerWidth - 1)) ${reset}" -NoNewline
+        Write-Host "${esc}[38;5;$($cat.Bg)m$sep${reset} " -NoNewline
 
-        for ($subIdx = 0; $subIdx -lt $subCount; $subIdx++) {
-            Write-Host ("  " + (($sGrp | ForEach-Object {
-                if ($subIdx -lt $_.Sub.Count) {
-                    $sub = $_.Sub[$subIdx]
-                    $display = "  $($sub.Name):"
-                    & $fit ($display.PadRight(1)) $colWidth
-                } else { ' ' * $colWidth }
-            }) -join $gap)) -ForegroundColor DarkGray
+        $lineCmds = 0
+        $maxLineCmds = [Math]::Floor(($cWidth - $headerWidth - 4) / $colWidth)
 
-            $maxCmds = @($sGrp | ForEach-Object {
-                if ($subIdx -lt $_.Sub.Count) { $_.Sub[$subIdx].Cmd.Count } else { 0 }
-            } | Measure-Object -Maximum).Maximum
-
-            for ($cIdx = 0; $cIdx -lt $maxCmds; $cIdx++) {
-                Write-Host ("  " + (($sGrp | ForEach-Object {
-                    if ($subIdx -lt $_.Sub.Count -and $cIdx -lt $_.Sub[$subIdx].Cmd.Count) {
-                        $fn = $_.Sub[$subIdx].Cmd[$cIdx]; $a = $aliases[$fn]
-                        $display = if ($a) { $a.PadRight($colWidth) } else { $fn.PadRight($colWidth) }
-                        & $fit $display $colWidth
-                    } else { ' ' * $colWidth }
-                }) -join $gap)) -ForegroundColor White
+        for ($i = 0; $i -lt $cat.Cmds.Count; $i++) {
+            if ($lineCmds -ge $maxLineCmds) {
+                Write-Host ""
+                Write-Host (" " * $headerWidth) -NoNewline
+                Write-Host "  " -NoNewline
+                $lineCmds = 0
             }
+            Write-Host ($cat.Cmds[$i].PadRight($colWidth)) -NoNewline -ForegroundColor White
+            $lineCmds++
         }
-        Write-Host ''
+        Write-Host ""
     }
+
+    # Environment Footer
+    Write-Host "`n " -NoNewline
+    Write-Host "${esc}[38;5;$($c.Env)m$rsep${reset}" -NoNewline
+    Write-Host "${esc}[48;5;$($c.Env)m${esc}[38;5;15m ENV: ${reset}" -NoNewline
+    Write-Host "${esc}[48;5;238m${esc}[38;5;250m  $($pRoot)  ${reset}${esc}[38;5;238m$sep${reset}"
 }
 
 function Watch-HawkDashboard {

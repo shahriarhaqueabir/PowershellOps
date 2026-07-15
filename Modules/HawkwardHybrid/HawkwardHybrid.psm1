@@ -1,9 +1,11 @@
 ﻿# ==============================================================================
-# Hawkward Hybrid 11.3 - Integrated Operational Core Engine (Production Refactored)
+# PowershellOps 11.3 - Integrated Operational Core Engine (Production Refactored)
 # ==============================================================================
 # Private helpers + Public functions are dot-sourced from Private/*.ps1 and Public/*.ps1
 
 $script:HawkVersion = '11.3'
+$script:HawkAppName = 'PowershellOps'
+$script:HawkVibe    = 'Modern'
 $script:HawkRequiredModules = @('Terminal-Icons', 'PSReadLine', 'PSTree')
 $script:HawkTrustedModulePublishers = @{
     'Terminal-Icons' = @{ Author = 'Brandon Olin'; CompanyName = 'devblackops' }

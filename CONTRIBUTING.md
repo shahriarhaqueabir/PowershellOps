@@ -1,4 +1,4 @@
-# Contributing to Hawkward Hybrid
+# Contributing to PowershellOps
 
 Thanks for your interest! This project is a PowerShell 7 module and profile — contributions that add security audits, system diagnostics, or AI integrations are especially welcome.
 

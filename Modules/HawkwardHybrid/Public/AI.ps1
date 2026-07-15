@@ -74,7 +74,9 @@ function Invoke-HawkAI {
         $success = $false; $lastErr = $null
         for ($attempt = 1; $attempt -le (1 + $MaxRetries) -and -not $success; $attempt++) {
             if ($attempt -gt 1) { Write-HawkHeader "  [Retry] $attempt / $((1 + $MaxRetries))..." Yellow; Start-Sleep -Seconds 3 }
-            Write-Host "`n  [AI] [$($Model.ToUpper())] " -NoNewline -ForegroundColor Magenta
+            $esc = [char]27
+            $reset = "${esc}[0m"
+            Write-Host "`n  ${esc}[48;5;183m${esc}[38;5;16m AI ${reset} [${esc}[38;5;183m$($Model.ToUpper())${reset}] " -NoNewline
             $client = [System.Net.Http.HttpClient]::new()
             try {
                 $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSec)

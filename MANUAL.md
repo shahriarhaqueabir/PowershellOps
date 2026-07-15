@@ -1,4 +1,4 @@
-# 🦅 Hawkward Hybrid — Quick Reference Manual
+# 🦅 PowershellOps — Quick Reference Manual
 
 > v11.3 · Ops Toolkit  
 > Load time: **~137ms** (module) · **~2.3s** (full profile)  
