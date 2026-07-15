@@ -67,7 +67,10 @@ function Invoke-OpsAI {
     begin { $dataBuffer = [System.Collections.Generic.List[object]]::new() }
     process { $dataBuffer.Add($InputData) }
     end {
-        $stringifiedData = $dataBuffer | Out-String; if ($RedactSensitive) { $stringifiedData = $stringifiedData | Protect-OpsSensitiveText | Out-String }
+        $stringifiedData = $dataBuffer | Out-String
+        if ($RedactSensitive) {
+            $stringifiedData = $stringifiedData | Protect-OpsSensitiveText
+        }
         $ctx = Build-OpsAIContextPacket -Instruction $Instruction -InputObject $dataBuffer.ToArray() -MemoryLimit $MemoryLimit -NoMemory:$NoMemory
         $contract = "You are PowershellOps AI, a fast local PowerShell/SysOps assistant.`nUse the context envelope, relevant memory, and pipeline data as evidence.`nDefault to a concise answer. Expand only when requested.`nIf pipeline data is present, answer from it first and preserve its units.`nDo not output commands unless specifically requested."
         $payload = @{ model = $Model; prompt = "$contract`n`n$($ctx.Text)`n`nUser question:`n$Instruction`n`nPowerShell pipeline data:`n$stringifiedData"; stream = $true } | ConvertTo-Json -Depth 5
