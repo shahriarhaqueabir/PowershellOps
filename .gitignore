@@ -51,6 +51,8 @@ credentials.*
 # BACKUP, LEGACY & DEV ARTEFACTS
 # ─────────────────────────────────────────────
 BackupOriginal/
+Scripts/dev/
+__final_check.ps1
 *.backup.ps1
 *.bak
 *.old
