@@ -250,7 +250,7 @@ These three helpers are shared by all workflow functions and are not exported:
 | `dailyops` | `Invoke-OpsDailyOps` | Health + uptime + disk + network + DNS + events + temp + power | 8 sub-functions, scored 0–100, C: <10% free → 🔴 CRITICAL + score penalty |
 | `sysreview` | `Invoke-OpsSystemReview` | Spec + health + uptime + RAM + disk + resource map + ports + temp + hypervisor + power + license | 11 sub-functions, sections: HARDWARE / PERFORMANCE / RESOURCE CONSUMERS / LISTENING PORTS / STORAGE / LICENSE |
 | `secaudit` | `Invoke-OpsSecurityAudit` | Firewall + boot + scheduled tasks + ghost ports + suspicious procs + events + admin + shield | 8 sub-functions, sections: DEFENDER / FIREWALL / STARTUP & TASKS / ADMINISTRATORS / ANOMALIES |
-| `netdiag` | `Invoke-OpsNetworkDiagnostics` | NetCheck + Wi-Fi + DNS bench + DNS cache + link speed + shares + hosts + established + triage | 9 sub-functions, sections: CONNECTIVITY / DNS RESOLVERS / INTERFACES / SHARES / HOSTS FILE |
+| `netreview` | `Invoke-OpsNetworkDiagnostics` | NetCheck + Wi-Fi + DNS bench + DNS cache + link speed + shares + hosts + established + triage | 9 sub-functions, sections: CONNECTIVITY / DNS RESOLVERS / INTERFACES / SHARES / HOSTS FILE |
 | `threat` | `Invoke-OpsThreatHunt` | Suspicious procs + ghost ports + events + bad files + locked files + sparse files + compressed dirs + firewall | 8 sub-functions, categorizes findings into THREATS / WARNINGS / INFO buckets |
 | `change` | `Invoke-OpsChangeAudit` | Recent files + patches + drivers + dumps + boot + certs | 6 sub-functions, sections: RECENT FILES / UPDATES / DRIVERS / CRASH DUMPS / STARTUP / CERTIFICATES |
 | `compliance` | `Invoke-OpsComplianceCheck` | Admin count + Defender + firewall gaps + non-MS tasks + boot entries + patches + license + hypervisor + ports | 9 CIS-inspired checks, returns pass/fail tally with percentage score |
@@ -281,10 +281,10 @@ Four "umbrella" commands organize the most common queries under a single verb:
 
 | Alias | Full name | What it does |
 |-------|-----------|-------------|
-| `sys` | `Get-OpsSystem` | Dispatches to `Get-OpsSpec`, `Get-OpsHealth`, `Get-OpsUptime`, `Get-OpsRamInfo`, `Get-OpsBattery`, `Get-OpsDisplay`, `Get-OpsDiskPressureAudit`, `Get-OpsResourceMap`, `Get-OpsPortMap` via `-Type` parameter |
-| `audit` | `Get-OpsAudit` | Dispatches to `Get-OpsFirewallAudit`, `Get-OpsBootMap`, `Get-OpsScheduledTaskRiskAudit`, `Get-OpsGhostPortAudit`, `Get-OpsSuspiciousProcessAudit`, `Get-OpsEventStormAudit`, `Get-OpsPatchHistory`, `Get-OpsTempCheck`, `Get-OpsClipCheck` via `-Type` |
-| `net` | `Get-OpsNetwork` | Dispatches to `Get-OpsNetCheck`, `Get-OpsWifi`, `Get-OpsDnsBench`, `Get-OpsLinkSpeed`, `Get-OpsShare`, `Get-OpsHostsCheck`, `Get-OpsDnsCache`, `Get-OpsNetworkTriage` via `-Type` |
-| `env` | `Get-OpsEnv` | Dispatches to `Get-OpsEnvMap`, `Get-OpsPathAudit`, `Get-OpsApp` via `-Type` |
+| `sysdiag` | `Get-OpsSystem` | Dispatches to `Get-OpsSpec`, `Get-OpsHealth`, `Get-OpsUptime`, `Get-OpsRamInfo`, `Get-OpsBattery`, `Get-OpsDisplay`, `Get-OpsDiskPressureAudit`, `Get-OpsResourceMap`, `Get-OpsPortMap` via `-Type` parameter |
+| `auditdiag` | `Get-OpsAudit` | Dispatches to `Get-OpsFirewallAudit`, `Get-OpsBootMap`, `Get-OpsScheduledTaskRiskAudit`, `Get-OpsGhostPortAudit`, `Get-OpsSuspiciousProcessAudit`, `Get-OpsEventStormAudit`, `Get-OpsPatchHistory`, `Get-OpsTempCheck`, `Get-OpsClipCheck` via `-Type` |
+| `netview` | `Get-OpsNetwork` | Dispatches to `Get-OpsNetCheck`, `Get-OpsWifi`, `Get-OpsDnsBench`, `Get-OpsLinkSpeed`, `Get-OpsShare`, `Get-OpsHostsCheck`, `Get-OpsDnsCache`, `Get-OpsNetworkTriage` via `-Type` |
+| `envdiag` | `Get-OpsEnv` | Dispatches to `Get-OpsEnvMap`, `Get-OpsPathAudit`, `Get-OpsApp` via `-Type` |
 
 ---
 

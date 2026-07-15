@@ -54,24 +54,31 @@ The interface follows a refined 14-character fixed-width strategy with an 8-bit 
  SYSTEM       > corehealth      sysspec         sysuptime       ramstats
                 battstatus      gpuview         powertriage     vmcheck
                 liccheck        diskpressure    tempcheck       clipcheck
-                smartstatus     resourcemap     portmap
+                smartstatus     resourcemap     portmap         sysdiag
 
  SECURITY     > adminaudit      shieldstatus    fwcheck         bootmap
                 taskrisk        ghostports      susprocs        eventstorm
                 certaudit       dumpmap         filecheck       shortcutcheck
                 lockcheck       sparsecheck     compresscheck   patchhistory
-                driveraudit     recentfiles     secretmask
+                driveraudit     recentfiles     secretmask      auditdiag
 
  NETWORK      > netping         wificheck       peerscheck      dnsbench
                 netspeed        smbshares       hostscheck      dnsmap
-                nettriage
+                nettriage       netview
 
  AI/MEM       > askai           websearch       aistatus        aiintent
                 aiprofile       sourcequality   safetycheck     airemember
                 airecall        memorymap       memoryread      memoryfile
 
- RUN          > dailycheck      sysreview       secaudit        netdiag
+ RUN          > dailycheck      sysreview       secaudit        netreview
                 threathunt      changeaudit     compliancecheck fullreport
+
+ ENVIRONMENT  > envmap          pathaudit       applist         apploc
+                envdiag
+
+ CORE         > projview        projset         openhere        corecache
+                coreindex       watchindex      corereload      coreinit
+                coremanual
 ```
 
 ---
