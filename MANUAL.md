@@ -137,7 +137,7 @@ The dashboard queries Ollama `/api/tags` (2s timeout) to report AI status (ACTIV
 
 | Alias | Full command | Under the hood |
 |-------|-------------|----------------|
-| `ai` | `Invoke-OpsAI` | Sends prompt + piped input as `{prompt}` to Ollama `OpsPowershell` at `http://127.0.0.1:11434/api/generate` (`stream: true`). Constructs a system contract, context envelope from `Build-OpsAIContextPacket`, and pipeline data. Uses `HttpClient.PostAsync` + `StreamReader.ReadLine` for token-by-token streaming. Supports `-Remember`, `-RedactSensitive`, `-MaxRetries` (with 3s back-off). |
+| `ai` | `Invoke-OpsAI` | Sends prompt + piped input as `{prompt}` to the configured Ollama model at `http://127.0.0.1:11434/api/generate` (`stream: true`). Constructs a system contract, context envelope from `Build-OpsAIContextPacket`, and pipeline data. Uses `HttpClient.PostAsync` + `StreamReader.ReadLine` for token-by-token streaming. Supports `-Remember`, `-RedactSensitive`, `-MaxRetries` (with 3s back-off). |
 | `ggl` | `Invoke-OpsSearch` | Without `-AI`: opens browser (`Start-Process $url`). With `-AI`: POSTs to DuckDuckGo Lite, extracts `uddg=` redirect links, resolves via `Resolve-OpsDuckDuckGoHref`, scrapes up to N pages (configurable via `-Sources`, default 5), strips `<style>`/`<script>`/HTML tags, runs quality scoring and prompt-injection detection, then pipes to `Invoke-OpsAI` for synthesis. Rate-limited to one request per 5s. |
 | `intent` | `Get-OpsAIIntent` | Classifies user prompt via regex matching against `\b(search|web|online)\b` → Research, `\b(command|script|cmdlet)\b` → Shell, `\b(compare|changed|since)\b` → Compare, `\b(summarize|explain|why)\b` → Explain. Returns `'AnalyzeData'` if no pattern matches. |
 | `aiprofile` | `Get-OpsAIDataProfile` | Profiles piped input: determines Kind (`Empty`/`Text`/`Table`/`Object`), Row count, Column names (first 24, excludes PS* properties). Does not compute value ranges, null %, or memory size. |
@@ -153,7 +153,7 @@ The dashboard queries Ollama `/api/tags` (2s timeout) to report AI status (ACTIV
 
 | Alias | Full command | Under the hood |
 |-------|-------------|----------------|
-| `aistatus` | `Get-OpsAIStatus` | `Invoke-RestMethod http://127.0.0.1:11434/api/tags` → lists all pulled Ollama models with name, size, modification date |
+| `aistatus` | `Get-OpsAIStatus` | `Invoke-RestMethod` against the configured Ollama endpoint `/api/tags` → lists pulled Ollama models with name, size, modification date |
 
 ---
 
@@ -217,6 +217,13 @@ The dashboard queries Ollama `/api/tags` (2s timeout) to report AI status (ACTIV
 | Alias | Full command | Under the hood |
 |-------|-------------|----------------|
 | `init` | `Initialize-OpsProfile` | Sets `$global:OpsProjectRoot` → imports prerequisites via `Import-OpsPrerequisite` (`Terminal-Icons`, `PSReadLine`, `PSTree`) → validates expected module metadata → configures PSReadLine (prediction source History + ListView mode) → sets safe `Ops-*` aliases (`Set-OpsAliases`) → sets prompt (`Set-OpsPrompt`). `-SkipModules` bypasses prereq import; `-ShowDashboard` forces dashboard render. Supports `-WhatIf`. |
+| `opsonboard` | `Invoke-OpsOnboard` | Manual onboarding planner. Reviews/sets project root, memory root, Ollama endpoint, and model choice; discovers local models via `ollama list` or `/api/tags`; prints the full `Invoke-OpsOnboardStep*` command plus the `onboardstep*` alias for copy/edit/paste. Supports `-Apply` and `-WhatIf`. |
+| `onboardstep1` | `Invoke-OpsOnboardStep1` | Auto-runs with the default project root unless you override it; saves the project root to config and session state. |
+| `onboardstep2` | `Invoke-OpsOnboardStep2` | Auto-runs with the default memory root derived from the project root unless you override it; creates and saves the local memory root. |
+| `onboardstep3` | `Invoke-OpsOnboardStep3` | Verifies the Ollama endpoint and stores it in config. |
+| `onboardstep4` | `Invoke-OpsOnboardStep4` | Chooses the installed local model and persists the selection. |
+| `onboardstep5` | `Invoke-OpsOnboardStep5` | Generates the local Modelfile automatically from the bundled template and selected model. This is the step that makes the file. |
+| `onboardstep6` | `Invoke-OpsOnboardStep6` | Runs `ollama create powershell-ops -f "<model-file>"` using the generated Modelfile. |
 | `proj` | `Get-OpsProject` | Returns the current `$global:OpsProjectRoot` path |
 | `projset` | `Invoke-OpsProject` | Sets `$global:OpsProjectRoot` to a new path (or defaults to the derived checkout/profile root). Supports `-WhatIf`. |
 | `explorer` | `Invoke-ExplorerHere` | `Start-Process explorer.exe -ArgumentList (Get-Location).Path` — opens current directory in File Explorer |
@@ -306,6 +313,7 @@ $env:Ops_NO_DASH = '1'
 | `$env:Ops_NO_DASH` | unset | Set to `1` to suppress dashboard |
 | `$env:CI` | unset | Automatically suppresses dashboard |
 | `$global:OpsProjectRoot` | derived checkout/profile root or `$Ops_PROJECT_ROOT` | Project root for `proj`/`projset` |
+| `Config/ops-settings.json` | optional user settings file | Persists project root, memory root, Ollama endpoint, selected AI model, and generated model file path |
 | `$script:OpsSensitiveNamePattern` | regex | Pattern for `Protect-OpsSensitiveText` redaction |
 
 ---
@@ -357,7 +365,7 @@ res | ai "What is using the most memory?" -Remember
 | Daily ops scan (cached) | ~1–3s |
 | Compliance check (cached) | ~2–5s |
 
-The 2.3s profile load is mainly from `Import-OpsPrerequisite` checking PSGallery. Second runs are faster due to caching. AI first-query latency depends on whether `Opspowershell:latest` is already loaded in Ollama.
+The 2.3s profile load is mainly from `Import-OpsPrerequisite` checking PSGallery. Second runs are faster due to caching. AI first-query latency depends on whether the selected Ollama model is already loaded.
 
 ---
 
@@ -394,5 +402,3 @@ The 2.3s profile load is mainly from `Import-OpsPrerequisite` checking PSGallery
 
 ### Dispatch
 `sys` · `audit` · `net` · `env`
-
-

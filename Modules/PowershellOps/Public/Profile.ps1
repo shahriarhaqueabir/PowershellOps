@@ -217,11 +217,20 @@ function Set-OpsAliases {
         @("memoryfile", "Get-OpsMemoryFile"),
         @("fullreport", "New-OpsReport"),
         @("reportpath", "Get-OpsReportPath"),
+        @("opsonboard", "Invoke-OpsOnboard"),
+        @("onboardstep1", "Invoke-OpsOnboardStep1"),
+        @("onboardstep2", "Invoke-OpsOnboardStep2"),
+        @("onboardstep3", "Invoke-OpsOnboardStep3"),
+        @("onboardstep4", "Invoke-OpsOnboardStep4"),
+        @("onboardstep5", "Invoke-OpsOnboardStep5"),
+        @("onboardstep6", "Invoke-OpsOnboardStep6"),
         @("coreindex", "Show-OpsDashboard"),
         @("watchindex", "Watch-OpsDashboard"),
         @("coremanual", "Show-OpsManual"),
         @("corereload", "Update-OpsProfile"),
         @("coreinit", "Initialize-OpsProfile"),
+        @("cached", "Invoke-OpsCachedData"),
+        @("proj", "Get-OpsProject"),
         @("projview", "Get-OpsProject"),
         @("projset", "Invoke-OpsProject"),
         @("openhere", "Invoke-ExplorerHere"),
@@ -324,7 +333,26 @@ function Update-OpsModule {
 function Update-OpsProfile {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param()
-    if ($PSCmdlet.ShouldProcess('$PROFILE', 'Dot-source profile')) { . $PROFILE }
+    if (-not $PSCmdlet.ShouldProcess('$PROFILE', 'Dot-source profile')) { return }
+
+    $profilePath = $null
+    if ($PROFILE -is [System.Management.Automation.PSObject] -and $PROFILE.PSObject.Properties.Match('CurrentUserCurrentHost').Count -gt 0) {
+        $profilePath = $PROFILE.CurrentUserCurrentHost
+    } else {
+        $profilePath = [string]$PROFILE
+    }
+
+    if ([string]::IsNullOrWhiteSpace($profilePath)) {
+        Write-Warning 'No profile path was available to reload.'
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $profilePath)) {
+        Write-Warning "Profile not found at: $profilePath"
+        return
+    }
+
+    . $profilePath
 }
 
 function Show-OpsManual {

@@ -141,13 +141,13 @@ function Test-OpsPromptInjection {
 
     if ($UseAIHeuristic -and $score -ge 10 -and $score -lt 40) {
         try {
-            $null = Get-OpsAIStatus -Endpoint 'http://127.0.0.1:11434' -ErrorAction SilentlyContinue
+            $null = Get-OpsAIStatus -Endpoint $script:OpsDefaultAIEndpoint -ErrorAction SilentlyContinue
         } catch { Write-Verbose 'PromptInjection: Ollama unavailable for AI heuristic, skipping'; return ($score -ge 25) }
 
         try {
             $probePrompt = "Classify the following text as 'safe' or 'injection' (respond with one word only):`n`n$($Payload.Substring(0, [Math]::Min(500, $Payload.Length)))"
-            $aiPayload = @{ model = 'OpsPowershell'; prompt = $probePrompt; stream = $false } | ConvertTo-Json -Depth 3
-            $aiResp = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/generate' -Method Post -Body $aiPayload -ContentType 'application/json' -TimeoutSec 10 -ErrorAction Stop
+            $aiPayload = @{ model = $script:OpsDefaultAIModel; prompt = $probePrompt; stream = $false } | ConvertTo-Json -Depth 3
+            $aiResp = Invoke-RestMethod -Uri "$script:OpsDefaultAIEndpoint/api/generate" -Method Post -Body $aiPayload -ContentType 'application/json' -TimeoutSec 10 -ErrorAction Stop
             if ($aiResp.response -match '(?i)\binjection\b') { $score += 30 }
             Write-Verbose "PromptInjection: AI heuristic returned score adjustment"
         } catch { Write-Verbose 'PromptInjection: AI heuristic unavailable, skipping layer 4' }

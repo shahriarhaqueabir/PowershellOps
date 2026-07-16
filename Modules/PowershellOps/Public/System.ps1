@@ -279,7 +279,11 @@ function Get-OpsApp {
     } catch { @() }
 }
 
-function Get-OpsAppLocation { param([string]$App) Get-Command $App -ErrorAction SilentlyContinue | Select-Object Name, Source }
+function Get-OpsAppLocation {
+    [CmdletBinding()]
+    param([string]$App = 'pwsh.exe')
+    Get-Command -Name $App -CommandType Application -ErrorAction SilentlyContinue | Select-Object Name, Source
+}
 
 function Get-OpsRecent {
     $recentDir = Join-Path $env:APPDATA 'Microsoft\Windows\Recent'

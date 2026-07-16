@@ -1,7 +1,7 @@
 # ── PUBLIC: AI FUNCTIONS ───────────────────────────────────────────────────
 
 function Get-OpsAIStatus {
-    param([string]$Endpoint = 'http://127.0.0.1:11434')
+    param([string]$Endpoint = $script:OpsDefaultAIEndpoint)
     return Invoke-OpsCachedData -Key "ai_status_$Endpoint" -ExpirySeconds 15 -ScriptBlock {
         try {
             $models = (Invoke-RestMethod -Uri "$Endpoint/api/tags" -TimeoutSec 5 -ErrorAction Stop).models
@@ -63,7 +63,7 @@ function Build-OpsAIContextPacket {
 
 function Invoke-OpsAI {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', 'Intentional streaming output to console')]
-    [CmdletBinding()] param([Parameter(ValueFromPipeline = $true, Mandatory = $true)]$InputData, [Parameter(Position = 0)][string]$Instruction = 'Analyze this data.', [string]$Model = 'OpsPowershell', [int]$TimeoutSec = 120, [int]$MaxRetries = 0, [switch]$RedactSensitive, [switch]$Remember, [switch]$NoMemory, [int]$MemoryLimit = 5)
+    [CmdletBinding()] param([Parameter(ValueFromPipeline = $true, Mandatory = $true)]$InputData, [Parameter(Position = 0)][string]$Instruction = 'Analyze this data.', [string]$Model = $script:OpsDefaultAIModel, [int]$TimeoutSec = 120, [int]$MaxRetries = 0, [switch]$RedactSensitive, [switch]$Remember, [switch]$NoMemory, [int]$MemoryLimit = 5)
     begin { $dataBuffer = [System.Collections.Generic.List[object]]::new() }
     process { $dataBuffer.Add($InputData) }
     end {
@@ -73,18 +73,20 @@ function Invoke-OpsAI {
         }
         $ctx = Build-OpsAIContextPacket -Instruction $Instruction -InputObject $dataBuffer.ToArray() -MemoryLimit $MemoryLimit -NoMemory:$NoMemory
         $contract = "You are PowershellOps AI, a fast local PowerShell/SysOps assistant.`nUse the context envelope, relevant memory, and pipeline data as evidence.`nDefault to a concise answer. Expand only when requested.`nIf pipeline data is present, answer from it first and preserve its units.`nDo not output commands unless specifically requested."
-        $payload = @{ model = $Model; prompt = "$contract`n`n$($ctx.Text)`n`nUser question:`n$Instruction`n`nPowerShell pipeline data:`n$stringifiedData"; stream = $true } | ConvertTo-Json -Depth 5
+        $catalog = Get-OpsOllamaModelCatalog -Endpoint $script:OpsDefaultAIEndpoint
+        $resolvedModel = Resolve-OpsAIModel -PreferredModel $Model -AvailableModels $catalog.Models
+        $payload = @{ model = $resolvedModel; prompt = "$contract`n`n$($ctx.Text)`n`nUser question:`n$Instruction`n`nPowerShell pipeline data:`n$stringifiedData"; stream = $true } | ConvertTo-Json -Depth 5
         $success = $false; $lastErr = $null
         for ($attempt = 1; $attempt -le (1 + $MaxRetries) -and -not $success; $attempt++) {
             if ($attempt -gt 1) { Write-OpsHeader "  [Retry] $attempt / $((1 + $MaxRetries))..." Yellow; Start-Sleep -Seconds 3 }
             $esc = [char]27
             $reset = "${esc}[0m"
-            Write-Host "`n  ${esc}[48;5;183m${esc}[38;5;16m AI ${reset} [${esc}[38;5;183m$($Model.ToUpper())${reset}] " -NoNewline
+            Write-Host "`n  ${esc}[48;5;183m${esc}[38;5;16m AI ${reset} [${esc}[38;5;183m$($resolvedModel.ToUpper())${reset}] " -NoNewline
             $client = [System.Net.Http.HttpClient]::new()
             try {
                 $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSec)
                 $body = [System.Net.Http.StringContent]::new($payload, [System.Text.Encoding]::UTF8, 'application/json')
-                $response = $client.PostAsync('http://127.0.0.1:11434/api/generate', $body).GetAwaiter().GetResult()
+                $response = $client.PostAsync("$script:OpsDefaultAIEndpoint/api/generate", $body).GetAwaiter().GetResult()
                 $response.EnsureSuccessStatusCode() | Out-Null
                 $stream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult(); $reader = [System.IO.StreamReader]::new($stream)
                 $respText = [System.Text.StringBuilder]::new()
