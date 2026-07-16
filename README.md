@@ -2,20 +2,20 @@
 
 # PowershellOps
 
-**A high-performance technical utility suite for Windows SysOps.**  
-*100% Private. 100% Local. 0% Telemetry.*
+**Advanced Operational Intelligence & Security Auditing Suite for Windows.**  
+*Private. High-Performance. Local AI Integration.*
 
-[![Engine](https://img.shields.io/badge/PowerShell-7.2%2B-0078D4?logo=powershell&logoColor=white)](#)
+[![PowerShell](https://img.shields.io/badge/PowerShell-7.2%2B-0078D4?logo=powershell&logoColor=white)](#)
 [![AI](https://img.shields.io/badge/AI-Ollama_(local)-8A2BE2?logo=ollama&logoColor=white)](#)
-[![Status](https://img.shields.io/badge/Status-v11.3-orange)](#)
 [![License](https://img.shields.io/badge/License-MIT-green)](#)
+[![Status](https://img.shields.io/badge/Version-11.3-orange)](#)
 
 ---
 
-**81 Utilities · 7 Workflows · Local AI · Zero Cloud**  
-*Muted, professional precision for modern system operations.*
+**81 Enterprise Utilities · 7 Automated Workflows · Local LLM Integration · Zero Cloud Dependencies**  
+*Muted, professional precision for the modern System Administrator.*
 
-[Philosophy](#-philosophy) • [Installation](#-provisioning) • [Quick Reference](#-quick-reference-manual) • [AI & Memory](#-ai--search) • [Security](#-security)
+[Features](#-key-capabilities) • [Installation](#-provisioning) • [Quick Start](#-interface) • [AI & Memory](#-local-intelligence) • [Security](#-security-audit)
 
 </div>
 
@@ -23,134 +23,106 @@
 
 ## ── PHILOSOPHY ────────────────────────────────────────────────────────────
 
-PowershellOps is a modern creative studio suite for SysOps, built for those who value privacy, speed, and technical depth. It provides a dense ecosystem of system, security, and network tools that run entirely on your local hardware.
+PowershellOps is a professional technical studio for Windows SysOps, designed for specialists who demand privacy, execution speed, and deep system insights. It provides a dense ecosystem of diagnostics, security audits, and network tools that operate entirely within your local perimeter.
 
-- **STATUS REPORTING**: High-density health summaries in a professional pastel interface.
-- **SECURITY SUBSTRATE**: Audit firewalls, listeners, and persistence hooks locally.
-- **LOCAL INTELLIGENCE**: Integrated Ollama pipeline for data analysis and research.
-- **PORTABLE**: Self-contained module that respects your global environment.
+- **INTELLIGENT TELEMETRY**: High-density system health reporting in a refined ANSI interface.
+- **SECURITY SUBSTRATE**: Local auditing of firewalls, listeners, and persistence vectors.
+- **LOCAL INTELLIGENCE**: Integrated pipeline for local LLMs (Ollama) to perform real-time data analysis.
+- **PORTABLE & CLEAN**: A self-contained module architecture that respects your existing environment.
 
 ---
 
 ## ── PROVISIONING ──────────────────────────────────────────────────────────
 
-Initialize the core environment from **PowerShell 7**:
+Deploy the core operational environment directly from **PowerShell 7**:
 
 ```powershell
-irm https://raw.githubusercontent.com/shahriarhaqueabir/PowershellOps/main/provision.ps1 | iex
+irm https://raw.githubusercontent.com/shahriarhaqueabir/PowershellOps/main/install.ps1 | iex
 ```
 
-*Requirements: PowerShell 7+ and Git.*
+*Requirements: PowerShell 7.2+, Git, and Ollama (optional for AI features).*
 
 ---
 
 ## ── INTERFACE ─────────────────────────────────────────────────────────────
 
-The interface follows a refined 14-character fixed-width strategy with an 8-bit ANSI pastel palette.
+The operational dashboard features a strictly aligned 16-character grid with a professional pastel palette.
 
 ```text
- Ops : CORE > v11.3 > AI: ACTIVE >
-
- SYSTEM       > corehealth      sysspec         sysuptime       ramstats
-                battstatus      gpuview         powertriage     vmcheck
-                liccheck        diskpressure    tempcheck       clipcheck
-                smartstatus     resourcemap     portmap         sysdiag
-
- SECURITY     > adminaudit      shieldstatus    fwcheck         bootmap
-                taskrisk        ghostports      susprocs        eventstorm
-                certaudit       dumpmap         filecheck       shortcutcheck
-                lockcheck       sparsecheck     compresscheck   patchhistory
-                driveraudit     recentfiles     secretmask      auditdiag
-
- NETWORK      > netping         wificheck       peerscheck      dnsbench
-                netspeed        smbshares       hostscheck      dnsmap
-                nettriage       netview
-
- AI/MEM       > askai           websearch       aistatus        aiintent
-                aiprofile       sourcequality   safetycheck     airemember
-                airecall        memorymap       memoryread      memoryfile
-
- RUN          > dailycheck      sysreview       secaudit        netreview
-                threathunt      changeaudit     compliancecheck fullreport
-
- ENVIRONMENT  > envmap          pathaudit       applist         apploc
-                envdiag
-
- CORE         > projview        projset         openhere        corecache
-                coreindex       watchindex      corereload      coreinit
-                coremanual
+  ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  Ops : CORE   v11.3   AI: ACTIVE                                                                                  │
+  ├────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ • SYSTEM           │ corehealth      sysspec         sysuptime       ramstats        battstatus      gpuview      │
+  │ • SECURITY         │ adminaudit      shieldstatus    fwcheck         bootmap         taskrisk        ghostports   │
+  │ • NETWORK          │ netping         wificheck       peerscheck      dnsbench        netspeed        smbshares    │
+  │ • AI/MEM           │ askai           websearch       aistatus        aiintent        aiprofile       airemember   │
+  │ • RUN              │ dailycheck      sysreview       secaudit        netreview       threathunt      changeaudit  │
+  └────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ── QUICK REFERENCE MANUAL ──────────────────────────────────────────────
+## ── QUICK REFERENCE ──────────────────────────────────────────────────────
 
-### 🖥️ SYSTEM
-| Alias | Description | Use Case |
+### 🖥️ SYSTEM DIAGNOSTICS
+| Alias | Description | Technical Metric |
 |:---|:---|:---|
-| `health` | Core health (CPU, RAM, Procs) | Fast status check |
-| `spec` | Hardware specifications | Asset inventory |
-| `uptime` | System uptime counter | Reliability tracking |
-| `ram` | Detailed physical memory map | Hardware audit |
-| `disk` | Storage pressure & free space | Capacity planning |
-| `res` | Top resource consumers | Troubleshooting slowdowns |
-| `port` | Active listening ports | Network mapping |
+| `corehealth`| Real-time system health | CPU, RAM, Procs, Handles |
+| `sysspec`   | Hardware specifications | Processor, Cores, GPU |
+| `sysuptime` | System availability | Continuous run-time tracking |
+| `ramstats`  | Physical memory map | Bank labels, Speed, Manufacturer |
+| `diskpressure`| Storage capacity audit | Free space % and volume state |
 
-### 🛡️ SECURITY
-| Alias | Description | Use Case |
+### 🛡️ SECURITY AUDIT
+| Alias | Description | Audit Focus |
 |:---|:---|:---|
-| `admin` | Administrator group audit | Access control review |
-| `shield` | Windows Defender status | Endpoint protection |
-| `fw` | Firewall & listener cross-ref | Rule gap analysis |
-| `boot` | Persistence (Run keys) audit | Startup inspection |
-| `sus` | Suspicious process detection | Threat hunting |
-| `storm` | Event log volume analysis | Log anomaly detection |
-| `secretredact`| Mask sensitive tokens | Privacy/Logging |
+| `adminaudit`| Administrator group audit | Access control & membership |
+| `shieldstatus`| Windows Defender state | Endpoint protection health |
+| `fwcheck`   | Firewall & port cross-ref | Rule gap detection |
+| `bootmap`   | Startup persistence | Registry run keys |
+| `threathunt`| Heuristic anomaly triage | Suspicious files & ports |
 
-### 🌐 NETWORK
-| Alias | Description | Use Case |
+### 🌐 NETWORK TRIAGE
+| Alias | Description | Connectivity Info |
 |:---|:---|:---|
-| `ping` | Internet reachability test | Connectivity check |
-| `wifi` | WLAN signal & SSID info | Wireless diagnostics |
-| `dns` | Multi-resolver benchmark | Optimization |
-| `smb` | Active network shares | Lateral movement audit |
-| `hosts` | Hosts file integrity check | Redirection audit |
+| `netping`   | Internet reachability | ICMP latency & state |
+| `wificheck` | WLAN diagnostics | SSID, Signal intensity |
+| `dnsbench`  | Multi-resolver benchmark | Resolution performance |
+| `smbshares` | Network share audit | Exposed directory vectors |
 
-### 🧠 AI & MEMORY
-Integrated with **Ollama** for local-only LLM processing. No data ever leaves your machine.
+### 🧠 LOCAL INTELLIGENCE
+Powered by **Ollama**. Secure, offline AI for data synthesis and research.
 
-| Alias | Description | Use Case |
+| Alias | Description | Synthesis Level |
 |:---|:---|:---|
-| `ai` | Local LLM query | Data analysis / Synthesis |
-| `ggl` | Web search + AI synthesis | Localized research |
-| `remember` | Store data in local memory | Persistence |
-| `recall` | Search local memory store | Knowledge retrieval |
-| `aistatus` | List local LLM models | Engine status |
+| `askai`    | Direct LLM query | Local reasoning core |
+| `websearch` | Scrape + AI Synthesis | Real-time local research |
+| `airemember`| Local memory storage | Knowledge persistence |
+| `airecall`  | Semantic memory search | Context retrieval |
 
 ---
 
-## ── SCENARIO WORKFLOWS ────────────────────────────────────────────────────
+## ── AUTOMATED WORKFLOWS ──────────────────────────────────────────────────
 
-High-density scored reports (0–100) combining multiple diagnostics.
+High-density scored reports combining multi-vector diagnostics into actionable intelligence.
 
-- **`dailyops`**: The morning brew. Health, disk, network, and event storms.
-- **`sysreview`**: Deep hardware and resource consumption audit.
-- **`secaudit`**: Hardening check. Defender, Firewall, and Persistence.
-- **`netdiag`**: Connectivity, DNS benchmarking, and interface triage.
-- **`threathunt`**: Hunt for suspicious files, ports, and processes.
-- **`compliance`**: CIS-inspired pass/fail validation.
+- **`dailycheck`**: The standard morning triage. Health, disk, network, and event storms.
+- **`sysreview`**: Comprehensive hardware and resource utilization audit.
+- **`secaudit`**: Security hardening and persistence hook verification.
+- **`netreview`**: Advanced network stack and DNS performance diagnostics.
+- **`threathunt`**: Targeted scan for suspicious artifacts and ghost listeners.
+- **`compliancecheck`**: CIS-aligned baseline validation for Windows workstations.
 
 ---
 
 ## ── DATA INTEGRITY ────────────────────────────────────────────────────────
 
-- **Privacy First**: All processing happens on your machine. No telemetry, no clouds.
-- **Local AI**: Direct integration with local LLMs via Ollama for intelligent analysis.
-- **Masking**: Built-in redaction filters (`secretmask`) ensure sensitive tokens never leak into reports.
+- **100% Private**: No data ever leaves your machine. No telemetry, no cloud logging.
+- **Local Reasoning**: LLM operations are performed via local Ollama instances.
+- **Privacy Filters**: Integrated `secretmask` technology automatically redacts sensitive tokens before processing.
 
 ---
 
 <div align="center">
-  <sub>MIT © 2026 · <a href="https://github.com/shahriarhaqueabir">Shahriar Haque Abir</a> · powershell-ops</sub>
+  <sub>Developed for Professionals by <a href="https://github.com/shahriarhaqueabir">Shahriar Haque Abir</a></sub>
 </div>
-

@@ -1,13 +1,48 @@
 # ── PRIVATE HELPERS ──────────────────────────────────────────────────────────
 
 # ── 1. CENTRALIZED PLATFORM DATA CACHE SUITE ──────────────────────────────
+function Get-OpsCacheSnapshot {
+    [CmdletBinding()]
+    param()
+
+    $entries = @(
+        foreach ($key in @($script:OpsCacheStore.Keys | Sort-Object)) {
+            $entry = $script:OpsCacheStore[$key]
+            if ($null -eq $entry) { continue }
+
+            [PSCustomObject]@{
+                Key        = $key
+                CachedAt   = $entry.Timestamp
+                AgeSeconds = if ($entry.Timestamp) {
+                    [Math]::Round(((Get-Date) - $entry.Timestamp).TotalSeconds, 2)
+                } else {
+                    $null
+                }
+                ValueType  = if ($null -ne $entry.Value) { $entry.Value.GetType().Name } else { '' }
+            }
+        }
+    )
+
+    if (-not $entries) { return @() }
+    $entries
+}
+
 function Invoke-OpsCachedData {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)][string]$Key,
-        [Parameter(Mandatory = $true)][int]$ExpirySeconds,
-        [Parameter(Mandatory = $true)][scriptblock]$ScriptBlock
+        [string]$Key,
+        [int]$ExpirySeconds,
+        [scriptblock]$ScriptBlock
     )
+
+    if (-not $PSBoundParameters.Count) {
+        return Get-OpsCacheSnapshot
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Key) -or $ExpirySeconds -lt 0 -or -not $ScriptBlock) {
+        throw 'Invoke-OpsCachedData requires -Key, -ExpirySeconds, and -ScriptBlock unless called without parameters to inspect the cache.'
+    }
+
     $now = Get-Date
 
     if ($script:OpsCacheStore.ContainsKey($Key)) {
@@ -163,7 +198,156 @@ function Test-OpsModulePublisher {
 
 function Get-OpsSafeAliasName {
     param([Parameter(Mandatory = $true)][string]$Name)
-    return $Name
+    if ($Name -match '^(?i)Ops-') { return $Name }
+    return "Ops-$Name"
+}
+
+function Get-OpsConfigurationPath {
+    [CmdletBinding()]
+    param()
+    if (-not (Test-Path $script:OpsConfigRoot)) {
+        $null = New-Item -Path $script:OpsConfigRoot -ItemType Directory -Force
+    }
+    $script:OpsConfigFile
+}
+
+function Read-OpsConfiguration {
+    [CmdletBinding()]
+    param()
+    $config = [ordered]@{
+        ProjectRoot     = $script:OpsDefaultProjectRoot
+        MemoryRoot      = $script:OpsMemoryRoot
+        AIEndpoint      = $script:OpsDefaultAIEndpoint
+        AIModel         = $script:OpsDefaultAIModel
+        ModelFile       = $script:OpsAIModelFile
+        SetupCompleted  = $false
+        LastUpdated     = $null
+    }
+
+    $path = Get-OpsConfigurationPath
+    if (Test-Path $path) {
+        try {
+            $loaded = Get-Content -Path $path -Raw -ErrorAction Stop | ConvertFrom-Json -AsHashtable -ErrorAction Stop
+            foreach ($key in $loaded.Keys) {
+                if ($null -ne $loaded[$key] -and $loaded[$key] -ne '') {
+                    $config[$key] = $loaded[$key]
+                }
+            }
+        } catch {
+            Write-Verbose "Configuration read skipped: $($_.Exception.Message)"
+        }
+    }
+
+    [PSCustomObject]$config
+}
+
+function Write-OpsConfiguration {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory = $true)][hashtable]$Configuration
+    )
+    $path = Get-OpsConfigurationPath
+    $payload = [ordered]@{
+        ProjectRoot    = $Configuration.ProjectRoot
+        MemoryRoot     = $Configuration.MemoryRoot
+        AIEndpoint     = $Configuration.AIEndpoint
+        AIModel        = $Configuration.AIModel
+        ModelFile      = $Configuration.ModelFile
+        SetupCompleted = [bool]$Configuration.SetupCompleted
+        LastUpdated    = (Get-Date).ToString('o')
+    }
+
+    if ($PSCmdlet.ShouldProcess($path, 'Save onboarding configuration')) {
+        $payload | ConvertTo-Json -Depth 6 | Set-Content -Path $path -Encoding UTF8
+    }
+
+    [PSCustomObject]$payload
+}
+
+function Import-OpsConfiguration {
+    [CmdletBinding()]
+    param()
+    $config = Read-OpsConfiguration
+
+    if ($config.ProjectRoot) { $script:OpsDefaultProjectRoot = $config.ProjectRoot }
+    if ($config.MemoryRoot) {
+        $script:OpsMemoryRoot = $config.MemoryRoot
+        $script:OpsMemoryFile = Join-Path $script:OpsMemoryRoot 'ops-memory.jsonl'
+    }
+    if ($config.AIEndpoint) { $script:OpsDefaultAIEndpoint = $config.AIEndpoint }
+    if ($config.AIModel) { $script:OpsDefaultAIModel = $config.AIModel }
+    if ($config.ModelFile) { $script:OpsAIModelFile = $config.ModelFile }
+
+    $config
+}
+
+function Get-OpsOllamaModelCatalog {
+    [CmdletBinding()]
+    param([string]$Endpoint = $script:OpsDefaultAIEndpoint)
+
+    $items = [System.Collections.Generic.List[object]]::new()
+    $source = 'Unavailable'
+    $message = ''
+
+    if (Get-Command ollama -ErrorAction SilentlyContinue) {
+        try {
+            $lines = @(& ollama list 2>$null)
+            foreach ($line in $lines) {
+                if ($line -match '^\s*(?<Name>\S+)\s+(?<Id>\S+)\s+(?<Size>\S+)\s+(?<Modified>.+)$') {
+                    if ($matches.Name -notin @('NAME', 'REPOSITORY')) {
+                        $items.Add([PSCustomObject]@{
+                            Name     = $matches.Name
+                            Size     = $matches.Size
+                            Modified = $matches.Modified.Trim()
+                            Source   = 'ollama list'
+                        })
+                    }
+                }
+            }
+            if ($items.Count -gt 0) { $source = 'ollama list' }
+        } catch {
+            $message = $_.Exception.Message
+        }
+    }
+
+    if ($items.Count -eq 0) {
+        try {
+            $response = Invoke-RestMethod -Uri "$Endpoint/api/tags" -TimeoutSec 5 -ErrorAction Stop
+            foreach ($model in @($response.models)) {
+                $items.Add([PSCustomObject]@{
+                    Name     = $model.name
+                    Size     = if ($model.size) { [Math]::Round($model.size / 1GB, 2) } else { $null }
+                    Modified = $model.modified_at
+                    Source   = 'api/tags'
+                })
+            }
+            if ($items.Count -gt 0) { $source = 'api/tags' }
+        } catch {
+            if (-not $message) { $message = $_.Exception.Message }
+        }
+    }
+
+    [PSCustomObject]@{
+        Endpoint = $Endpoint
+        Source   = $source
+        Message  = $message
+        Models   = @($items)
+    }
+}
+
+function Resolve-OpsAIModel {
+    [CmdletBinding()]
+    param(
+        [string]$PreferredModel,
+        [object[]]$AvailableModels = @()
+    )
+
+    $names = @($AvailableModels | ForEach-Object { $_.Name } | Where-Object { $_ })
+    if ($PreferredModel -and $names -contains $PreferredModel) { return $PreferredModel }
+    if ($script:OpsDefaultAIModel -and $names -contains $script:OpsDefaultAIModel) { return $script:OpsDefaultAIModel }
+    if ($names.Count -gt 0) { return $names[0] }
+    if ($PreferredModel) { return $PreferredModel }
+    return $script:OpsDefaultAIModel
 }
 
 function Format-OpsMemoryId {

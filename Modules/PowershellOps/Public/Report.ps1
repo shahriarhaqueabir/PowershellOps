@@ -91,7 +91,7 @@ function Show-OpsDashboard {
     param()
     $esc = [char]27
     $reset = "${esc}[0m"
-    $aiStatus = try { $null = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 2 -ErrorAction Stop; 'ACTIVE' } catch { 'OFFLINE' }
+    $aiStatus = try { $null = Invoke-RestMethod -Uri "$script:OpsDefaultAIEndpoint/api/tags" -TimeoutSec 2 -ErrorAction Stop; 'ACTIVE' } catch { 'OFFLINE' }
     $pRoot = $global:OpsProjectRoot ?? $script:OpsDefaultProjectRoot
     $cWidth = try { [Console]::WindowWidth } catch { 120 }
     if ($cWidth -lt 100) { $cWidth = 100 }
@@ -120,7 +120,7 @@ function Show-OpsDashboard {
         @{ Icon = '󰒙'; Name = 'AI/MEM';      Bg = $c.Aim; Cmds = @('askai','websearch','aistatus','aiintent','aiprofile','sourcequality','safetycheck','airemember','airecall','memorymap','memoryread','memoryfile') }
         @{ Icon = '󰒖'; Name = 'RUN';         Bg = $c.Run; Cmds = @('dailycheck','sysreview','secaudit','netreview','threathunt','changeaudit','compliancecheck','fullreport') }
         @{ Icon = '󰆧'; Name = 'ENVIRONMENT'; Bg = $c.Env; Cmds = @('envmap','pathaudit','applist','apploc','envdiag') }
-        @{ Icon = '󰅟'; Name = 'CORE';        Bg = $c.Cfg; Cmds = @('projview','projset','openhere','corecache','coreindex','watchindex','corereload','coreinit','coremanual') }
+        @{ Icon = '󰅟'; Name = 'CORE';        Bg = $c.Cfg; Cmds = @('projview','projset','openhere','cached','corecache','opsonboard','coreindex','watchindex','corereload','coreinit','coremanual') }
     )
 
     $headerWidth = 18

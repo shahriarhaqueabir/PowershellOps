@@ -17,9 +17,14 @@ Describe 'Module Import' {
         { Import-Module $script:moduleManifest -Force -ErrorAction Stop } | Should -Not -Throw
     }
 
+    It 'Registers onboarding aliases on import' {
+        (Get-Command onboardstep1 -ErrorAction SilentlyContinue).Definition | Should -Be 'Invoke-OpsOnboardStep1'
+        (Get-Command onboardstep2 -ErrorAction SilentlyContinue).Definition | Should -Be 'Invoke-OpsOnboardStep2'
+    }
+
     It 'Exports all expected functions' {
-        $exported = Get-Module PowershellOps | Select-Object -ExpandProperty ExportedFunctions
-        $exported.Count | Should -BeGreaterThan 80
+        $exported = (Import-Module $script:moduleManifest -Force -PassThru | Select-Object -First 1).ExportedFunctions
+        $exported.Keys.Count | Should -BeGreaterThan 80
         $exported.Keys | Should -Contain 'Get-OpsHealth'
         $exported.Keys | Should -Contain 'Invoke-OpsSearch'
         $exported.Keys | Should -Contain 'Add-OpsMemory'
@@ -338,6 +343,16 @@ Describe 'AI functions' {
         Get-OpsSourceQualityScore -Url 'https://example.gov' -Content 'A' * 1000 | Should -BeGreaterThan 60
         Get-OpsSourceQualityScore -Url 'https://example.com' -Content '' | Should -Be 0
     }
+
+    It 'Resolve-OpsAIModel falls back to an available Ollama model' {
+        $mod = Import-Module $script:moduleManifest -Force -PassThru | Select-Object -First 1
+        $catalog = @(
+            [PSCustomObject]@{ Name = 'model-a:latest' },
+            [PSCustomObject]@{ Name = 'model-b:latest' }
+        )
+
+        & $mod Resolve-OpsAIModel -PreferredModel 'OpsPowershell' -AvailableModels $catalog | Should -Be 'model-a:latest'
+    }
 }
 
 Describe 'Report & Dashboard' {
@@ -378,9 +393,44 @@ Describe 'Profile & helpers' {
 
     It 'Get-OpsSafeAliasName normalizes names' {
         # Private helper - access through module's internal scope
-        $mod = Get-Module PowershellOps
+        $mod = Import-Module $script:moduleManifest -Force -PassThru | Select-Object -First 1
         & $mod Get-OpsSafeAliasName -Name 'test' | Should -Be 'Ops-test'
         & $mod Get-OpsSafeAliasName -Name 'Ops-test' | Should -Be 'Ops-test'
+    }
+
+    It 'Set-OpsAliases exposes opsonboard' {
+        Set-OpsAliases
+        (Get-Command opsonboard -ErrorAction SilentlyContinue).Definition | Should -Be 'Invoke-OpsOnboard'
+    }
+
+    It 'Set-OpsAliases exposes onboarding step aliases' {
+        Set-OpsAliases
+        (Get-Command onboardstep1 -ErrorAction SilentlyContinue).Definition | Should -Be 'Invoke-OpsOnboardStep1'
+        (Get-Command onboardstep2 -ErrorAction SilentlyContinue).Definition | Should -Be 'Invoke-OpsOnboardStep2'
+        (Get-Command onboardstep3 -ErrorAction SilentlyContinue).Definition | Should -Be 'Invoke-OpsOnboardStep3'
+        (Get-Command onboardstep4 -ErrorAction SilentlyContinue).Definition | Should -Be 'Invoke-OpsOnboardStep4'
+        (Get-Command onboardstep5 -ErrorAction SilentlyContinue).Definition | Should -Be 'Invoke-OpsOnboardStep5'
+        (Get-Command onboardstep6 -ErrorAction SilentlyContinue).Definition | Should -Be 'Invoke-OpsOnboardStep6'
+    }
+
+    It 'onboardstep1 and onboardstep2 execute with default paths' {
+        $repoRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+        $expectedProjectRoot = $repoRoot
+        $expectedMemoryRoot = Join-Path $repoRoot 'Memory'
+
+        $step1 = Invoke-OpsOnboardStep1
+        $step2 = Invoke-OpsOnboardStep2
+
+        $step1.Applied | Should -BeTrue
+        $step1.ProjectRoot | Should -Be $expectedProjectRoot
+        $step2.Applied | Should -BeTrue
+        $step2.ProjectRoot | Should -Be $expectedProjectRoot
+        $step2.MemoryRoot | Should -Be $expectedMemoryRoot
+    }
+
+    It 'Set-OpsAliases exposes proj' {
+        Set-OpsAliases
+        (Get-Command proj -ErrorAction SilentlyContinue).Definition | Should -Be 'Get-OpsProject'
     }
 
     It 'Get-OpsProject returns a project root' {
@@ -411,6 +461,35 @@ Describe 'Profile & helpers' {
         $input = 'Hello world, nothing secret here'
         $result = $input | Protect-OpsSensitiveText
         $result | Should -Be $input
+    }
+
+    It 'Invoke-OpsOnboard returns a plan without applying changes' {
+        $repoRoot = Split-Path (Split-Path $script:modulePath -Parent) -Parent
+        $result = Invoke-OpsOnboard -ProjectRoot $repoRoot -MemoryRoot (Join-Path $TestDrive 'Memory') -Model 'OpsPowershell'
+        $result | Should -Not -BeNullOrEmpty
+        $result.Steps.Count | Should -BeGreaterThan 0
+        $result.ProjectRoot | Should -Not -BeNullOrEmpty
+        $result.MemoryRoot | Should -Not -BeNullOrEmpty
+        ($result.Steps | Where-Object Step -eq 1).Command | Should -Match '^Invoke-OpsOnboardStep1'
+        ($result.Steps | Where-Object Step -eq 1).AliasCommand | Should -Match '^onboardstep1'
+        ($result.Steps | Where-Object Step -eq 2).Command | Should -Match '^Invoke-OpsOnboardStep2'
+        ($result.Steps | Where-Object Step -eq 5).Command | Should -Match '^Invoke-OpsOnboardStep5'
+    }
+
+    It 'New-OpsOnboardModelfile generates the selected model in the template' {
+        $mod = Import-Module $script:moduleManifest -Force -PassThru | Select-Object -First 1
+        $templatePath = Join-Path $TestDrive 'OpsIntelligence.Modelfile'
+        $outputPath = Join-Path $TestDrive 'Generated.Modelfile'
+        @"
+FROM placeholder:model
+PARAMETER temperature 0.3
+"@ | Set-Content -Path $templatePath -Encoding UTF8
+
+        $result = & $mod New-OpsOnboardModelfile -SelectedModel 'hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q6_K' -ModelFilePath $outputPath -TemplatePath $templatePath
+
+        $result.Created | Should -BeTrue
+        $result.Model | Should -Be 'hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q6_K'
+        (Get-Content -Path $outputPath -Raw) | Should -Match 'FROM hf\.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q6_K'
     }
 }
 
