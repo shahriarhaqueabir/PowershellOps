@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.png" alt="PowershellOps" width="120"/>
+<img src="icon.png" alt="PowershellOps" width="110"/>
 
 # PowershellOps
 
-**Advanced Operational Intelligence & Universal AI Companion for Windows.**  
+**Advanced Operational Intelligence & Universal AI Companion for Windows.**
 *Private. High-Performance. Local Agentic Stack.*
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-7.6_LTS-0078D4?logo=powershell&logoColor=white)](#)
@@ -12,43 +12,42 @@
 [![License](https://img.shields.io/badge/License-MIT-green)](#)
 [![Status](https://img.shields.io/badge/Version-12.0.0-orange)](#)
 
----
+**126 Functions · 90 Aliases · 7 Operational Workflows · Zero Cloud Dependencies**
 
-**126 Functions · 90 Aliases · 7 Operational Workflows · Universal AI Hub · Zero Cloud Dependencies**  
-*Muted, professional precision for the modern Technical Specialist.*
+</div>
 
-[Features](#-key-capabilities-) • [Installation](#-provisioning-) • [The Hub](#-the-companion-hub-hub-) • [Memory](#-semantic-recall-memory-) • [Security](#-security-audit) • [Walkthrough](docs/AGENTIC-IDE-TUTORIAL.md)
-
+<div align="center">
+  <img src="showcase.png" alt="The PowershellOps dashboard: 90 operational tools organized across 11 color-coded suites" width="100%"/>
+  <p><em>The live <strong>dash</strong> command center — every tool one keystroke away.</em></p>
 </div>
 
 ---
 
-## ── PHILOSOPHY ────────────────────────────────────────────────────────────
+## What is PowershellOps?
 
-PowershellOps is a professional **Agentic Stack** for Windows, designed for specialists who demand privacy, execution speed, and deep system insights. It transforms the terminal from a command shell into an **Intelligent Companion Hub** that reasons over local context and researches online information entirely within your perimeter.
+A professional **Agentic Stack** for Windows that turns the terminal into an Intelligent Companion Hub. It audits your system, diagnoses problems, and reasons over local context using a local LLM — everything stays inside your perimeter.
 
-- 🤖 **AGENTIC WORKFLOWS**: Multi-step AI reasoning for system repair and data analysis.
-- 🎯 **SITUATIONAL AWARENESS**: Automatic injection of time, date, and system load into every AI query.
-- 🛡️ **SECURITY SUBSTRATE**: Local auditing of firewalls, listeners, and persistence vectors.
-- 📦 **PORTABLE & CLEAN**: A minimalist "Thin Core" architecture with zero meta-bloat.
+- 🤖 **Agentic workflows** — multi-step AI reasoning for system repair and data analysis
+- 🎯 **Situational awareness** — time, date, and system load injected into every AI query
+- 🛡️ **Security substrate** — firewall gaps, ghost ports, persistence vectors, Defender health
+- 🔒 **100% private** — no telemetry, no cloud logging, local llama.cpp reasoning, auto-redaction of secrets
+
+[Features](#whats-inside) • [Installation](#installation) • [Daily Flow](#your-day-with-powershellops) • [Hub](#the-companion-hub-hub) • [Workflows](#operational-workflows) • [Walkthrough](docs/AGENTIC-IDE-TUTORIAL.md)
 
 ---
 
-## ── PROVISIONING ────────────────────────────────────────────────────────────
+## Installation
 
-Deploy the core operational environment directly from **PowerShell 7**:
+One line from **PowerShell 7**:
 
 ```powershell
 irm https://raw.githubusercontent.com/shahriarhaqueabir/PowershellOps/main/hawk-installer/install.ps1 | iex
 ```
 
-*Requirements: PowerShell 7.2+, Git, and llama.cpp (optional for AI features). Piped (`irm | iex`) invocations auto-download the installer bundle to `%TEMP%` and relaunch from disk.*
+*Requirements: PowerShell 7.2+, Git. Optional: llama.cpp + a local GGUF model for AI features. Piped invocations auto-download the installer bundle to `%TEMP%` and relaunch from disk.*
 
----
-
-## ── MANUAL INSTALLATION ────────────────────────────────────────────────────
-
-Prefer to wire it by hand instead of running `install.ps1`? From **PowerShell 7**:
+<details>
+<summary><b>Manual installation (no installer)</b></summary>
 
 ```powershell
 # 0. Source checkout
@@ -77,26 +76,35 @@ onboard -Apply
 **Notes**
 
 - Step 3 mirrors the installer's wiring step: it **replaces** `$PROFILE`. Merge your customizations back in from the `.bak-*` backup.
-- Config (`projectRoot`, memory root, llama endpoint/model) persists to `~\Documents\PowerShell\hawk.config.json` and `hawk-settings.json` — created automatically on first run / onboarding.
+- Config persists to `~\Documents\PowerShell\hawk.config.json` and `hawk-settings.json` — created automatically on first run / onboarding.
 - All targets are user-scoped; no admin rights required.
 
----
-
-## ── THE COMPANION HUB (`hub`) ──────────────────────────────────────────────
-
-
-The central "Brain" of your terminal. A single entry point for high-speed operational tasks.
-
-| Shortcut | Command | Action |
-|:---|:---|:---|
-| **`fix`**   | `Invoke-HawkShortFix` | **Self-Healing**: AI-driven remediation of the last error. |
-| **`stat`**  | `Invoke-HawkShortStat` | **Instant Pulse**: 1-page health/resource snapshot. |
-| **`ask`**   | `Invoke-HawkShortAsk` | **Pipable Research**: Analyze pipeline data with local LLMs. |
-| **`mem`**   | `Invoke-HawkShortMem` | **Semantic Recall**: Save personal operational notes/preferences. |
+</details>
 
 ---
 
-## ── KEY CAPABILITIES ───────────────────────────────────────────────────────
+## Your day with PowershellOps
+
+```powershell
+hawkdaily            # morning brief: health, uptime, disk, network, events → scored report
+dash                 # open the command center (screenshot above)
+
+temps                # drill into anything you see on a tile...
+shield
+drivehealth
+
+hub stat             # one-page pulse when something feels off
+fix                  # feed the last PowerShell error to the local model for a concrete fix
+resmap | ai "which process eats the most RAM?"   # pipeline any tool output into the LLM
+
+hawkreport           # everything so far → timestamped markdown report
+```
+
+Every tile on the dashboard is an alias like the ones above — see the [alias index](#alias-index) below for all 90.
+
+---
+
+## What's inside
 
 | Domain | Tools | Description |
 |:---|:---|:---|
@@ -104,7 +112,7 @@ The central "Brain" of your terminal. A single entry point for high-speed operat
 | 🛡️ **Security Audit** | 11 | Firewall gaps, ghost ports, persistence sweeps, Defender health, registry/IFEO scans |
 | 🩺 **Diagnostics** | 5 | One-shot health views, stack health checks, integration tests, event mapping |
 | 🌍 **Environment** | 6 | Firewall maps, env vars, PATH audit, port maps, network triage, boot maps |
-| 🦙 **Llama Server** | 4 | Start/stop/status/doctor for local llama.cpp server |
+| 🦙 **Llama Server** | 4 | Start/stop/status/doctor for the local llama.cpp server |
 | 🖥️ **System Matrix** | 10 | CPU, RAM, battery, thermals, fans, displays, hypervisor, power, licensing |
 | 🌐 **Network Intel** | 6 | Wi-Fi, DNS bench, link speed, SMB shares, hosts file, DNS cache |
 | 🔍 **Security Scan** | 6 | Defender shield, admins, apps, patches, drivers, certificates |
@@ -113,9 +121,82 @@ The central "Brain" of your terminal. A single entry point for high-speed operat
 
 ---
 
-## ── ARCHITECTURE ────────────────────────────────────────────────────────────
+## The Companion Hub (`hub`)
 
-PowershellOps utilizes a **Hexagonal (Ports & Adapters)** design to ensure maximum portability and low-latency execution.
+The central brain of your terminal — a single entry point for high-speed operational tasks.
+
+| Shortcut | Command | Action |
+|:---|:---|:---|
+| **`fix`** | `Invoke-HawkShortFix` | **Self-Healing**: AI-driven remediation of the last error |
+| **`stat`** | `Invoke-HawkShortStat` | **Instant Pulse**: 1-page health/resource snapshot |
+| **`ask`** | `Invoke-HawkShortAsk` | **Pipable Research**: analyze pipeline data with local LLMs |
+| **`mem`** | `Invoke-HawkShortMem` | **Semantic Recall**: save personal notes/preferences |
+
+---
+
+## Semantic Recall (Memory)
+
+Persistent JSONL at `~\Documents\PowerShell\Memory\hawk-memory.jsonl`. Every entry is auto-redacted through `Protect-HawkSensitiveText` before write.
+
+| Alias | Canonical | Description |
+|:---|:---|:---|
+| `remember` | `Add-HawkMemory` | Append entry: Id, Type, Tags, Text, Source, Created, Confidence, Pinned |
+| `recall` | `Search-HawkMemory` | Filter by `-Query`, `-Pinned`, `-First`; scores by term hits (+2 if pinned) |
+| `memmap` | `Get-HawkMemoryMap` | List all with `-Tag`, `-Pinned`, `-First` filters |
+| `readmem` | `Read-HawkMemory` | Return all entries as `[HawkMemoryEntry]` objects |
+
+```powershell
+remember "Prefer Q4_K_M for 1.7B models" -Tag preference -Pinned
+recall "quantization" -First 5
+memmap -Pinned
+```
+
+---
+
+## Operational Workflows
+
+Seven scenario-driven workflows with scoring (0–100) and actionable recommendations.
+
+| Workflow | Alias | Sources | Scoring |
+|:---|:---|:---|:---|
+| `Invoke-HawkDaily` | `hawkdaily` | health, uptime, disk, network, dns, events, temp, power | 8 sub-functions |
+| `Invoke-HawkSystemReview` | `sysreview` | spec, health, uptime, ram, disk, res, port, temp, hyperv, power, license | 11 sub-functions |
+| `Invoke-HawkSecurityAudit` | `secaudit` | fw, boot, schedtask, ghost, sus, storm, admin, shield | 8 sub-functions |
+| `Invoke-HawkNetworkDiagnostics` | `netdiag` | ping, wifi, dns, dnscache, linkspeed, shares, hosts, established, nettriage | 9 sub-functions |
+| `Invoke-HawkThreatHunt` | `threathunt` | sus, ghost, storm, badfiles, locked, sparse, compress, fw | THREATS/WARNINGS/INFO |
+| `Invoke-HawkChangeAudit` | — | recent, patches, drivers, dumps, boot, certs | 6 sub-functions |
+| `Invoke-HawkComplianceCheck` | — | admin, shield, fw gaps, non-MS tasks, boot, patches, license, hyperv, ports | 9 CIS-inspired checks |
+
+**Thresholds:** ≥80 🟢 | 50–79 🟡 | <50 🔴
+
+```powershell
+# Workflows emit per-check objects with .Score and .Recommendations
+secaudit | ForEach-Object { $_.Score }
+```
+
+---
+
+## Dispatch Verbs
+
+Four umbrella commands organize related queries under a single verb:
+
+| Verb | Alias | Types |
+|:---|:---|:---|
+| `Get-HawkSystem` | `sysdiag` | `health`, `spec`, `uptime`, `ram`, `battery`, `display`, `disk`, `res`, `port`, `temp`, `fans`, `hyperv`, `power`, `license` |
+| `Get-HawkAudit` | `auditdiag` | `fw`, `boot`, `schedtask`, `ghost`, `sus`, `storm`, `admin`, `shield`, `temp`, `clip`, `defender`, `reg`, `ifeo`, `pathaudit` |
+| `Get-HawkNetwork` | `netview` | `ping`, `wifi`, `dns`, `linkspeed`, `shares`, `hosts`, `dnscache`, `established`, `nettriage`, `portmap` |
+| `Get-HawkEnv` | `envdiag` | `envmap`, `path`, `app` |
+
+```powershell
+sysdiag disk        # → Get-HawkDiskPressureAudit
+netview portmap     # → Get-HawkPortMap
+```
+
+---
+
+## Architecture
+
+PowershellOps uses a **Hexagonal (Ports & Adapters)** design for maximum portability and low-latency execution:
 
 ```mermaid
 graph TD
@@ -131,60 +212,75 @@ graph TD
 
 ---
 
-## ── DATA INTEGRITY ────────────────────────────────────────────────────────
+## Documentation
 
-- 🔒 **100% Private**: No data ever leaves your machine. No telemetry, no cloud logging.
-- 🧠 **Local Reasoning**: LLM operations are performed via local llama.cpp instances.
-- 🔐 **Privacy Filters**: Integrated `secretredact` technology automatically redacts sensitive tokens before processing.
-
----
-
-## ── QUICK REFERENCE ────────────────────────────────────────────────────────
-
-### 🖥️ SYSTEM DIAGNOSTICS (`stat`)
-
-| Alias | Canonical | Description | Technical Metric |
-|:---|:---|:---|:---|
-| `sysview` | `Get-HawkSysView` | Real-time system health | CPU, RAM, Procs, Handles, Services, AI |
-
-### 🛡️ SECURITY AUDIT (`threathunt`)
-
-| Alias | Canonical | Description | Audit Focus |
-|:---|:---|:---|:---|
-| `threathunt` | `Invoke-HawkThreatHunt` | Heuristic anomaly triage | Suspicious files, ports, processes |
-
-### 🌐 NETWORK TRIAGE
-
-| Alias | Canonical | Description | Connectivity Info |
-|:---|:---|:---|:---|
-| `nettriage` | `Get-HawkNetworkTriage` | Listener/process/firewall cross-reference | Optional WAN ping + interface summary |
+| Document | Contents |
+|:---|:---|
+| 📗 [MANUAL.md](MANUAL.md) | Full reference: every function, parameter, sensor, and workflow |
+| 🚀 [Agentic IDE Walkthrough](docs/AGENTIC-IDE-TUTORIAL.md) | Using PowershellOps as an AI agent's toolkit |
 
 ---
 
-## ── DISPATCH VERBS ────────────────────────────────────────────────────────
+<a id="alias-index"></a>
+<details>
+<summary><b>📖 Complete alias index</b></summary>
 
+> All aliases are global. Run `dash` for the interactive menu.
 
-Four "umbrella" commands organize the most common queries under a single verb:
+### 🤖 AI & Workspace
+`ai` · `proj` · `reload` · `dash` · `hawkman` · `hawkhelp` · `ggl` · `hawkchat` · `hawkmodel` · `hawkdaily` · `hawkwatch` · `projaudit` · `hawkreport`
 
-| Verb | Alias | Types |
-|:---|:---|:---|
-| `Get-HawkSystem` | `sysdiag` | `health`, `spec`, `uptime`, `ram`, `battery`, `display`, `disk`, `res`, `port`, `temp`, `fans`, `hyperv`, `power`, `license` |
-| `Get-HawkAudit` | `auditdiag` | `fw`, `boot`, `schedtask`, `ghost`, `sus`, `storm`, `admin`, `shield`, `temp`, `clip`, `defender`, `reg`, `ifeo`, `pathaudit` |
-| `Get-HawkNetwork` | `netview` | `ping`, `wifi`, `dns`, `linkspeed`, `shares`, `hosts`, `dnscache`, `established`, `nettriage`, `portmap` |
-| `Get-HawkEnv` | `envdiag` | `envmap`, `path`, `app` |
+### 🛡️ Security Audit
+`ghostaudit` · `fwaudit` · `susaudit` · `diskaudit` · `taskaudit` · `evntaudit` · `defendermap` · `regaudit` · `ifeoaudit` · `regsnap` · `secretredact`
 
-```powershell
-sysdiag -Type disk      # → Get-HawkDiskPressureAudit
-auditdiag -Type fw      # → Get-HawkFirewallAudit
-netview -Type ping      # → Get-HawkNetCheck
-envdiag -Type path      # → Get-HawkPathAudit
-```
+### 🩺 Diagnostics
+`sysview` · `hawkdoctor` · `hawkcheck` · `evntmap` · `resmap`
 
----
+### 🌍 Environment
+`fwmap` · `envmap` · `pathaudit` · `portmap` · `nettriage` · `bootmap`
 
-## ── SENSORS & CMDLETS MAP ─────────────────────────────────────────────────
+### 🦙 Llama Server
+`llamastart` · `llamastop` · `aidoctor` · `llamadoctor`
 
-What each alias touches under the hood — CIM/WMI classes, cmdlets, files, and endpoints. Workflows (`hawkdaily`, `secaudit`, …) and dispatch verbs (`sysdiag`, …) are pure aggregators that fan out to these primitives.
+### 🖥️ System Matrix
+`specs` · `uptime` · `raminfo` · `battery` · `temps` · `fans` · `displays` · `hypervisor` · `power` · `license`
+
+### 🌐 Network Intel
+`wifi` · `dnsbench` · `linkspeed` · `shares` · `hostscheck` · `dnscache`
+
+### 🔍 Security Scan
+`shield` · `admins` · `apps` · `patchhistory` · `driveraudit` · `certs`
+
+### 💾 Storage
+`clipcheck` · `recent` · `drivehealth` · `dumps` · `badfiles` · `links` · `locked` · `sparse` · `compress`
+
+### 🧰 Utilities
+`locate` · `open`
+
+### ⚡ Short Verbs & Hub
+`ask` · `fix` · `stat` · `mem` · `hub`
+
+### 🎯 Dispatch Verbs
+`sysdiag` · `auditdiag` · `netview` · `envdiag`
+
+### 📋 Workflows
+`hawkdaily` · `sysreview` · `secaudit` · `netdiag` · `threathunt`
+
+### 🧠 Memory
+`remember` · `recall` · `memmap` · `readmem`
+
+### 🧭 Onboarding
+`onboard` (interactive 6-step planner; steps also callable as `Invoke-HawkOnboardStep1..6`)
+
+### 🔍 Quality
+`Get-HawkSourceQualityScore` · `Test-HawkPromptInjection`
+
+</details>
+
+<details>
+<summary><b>🔬 Sensors & cmdlets map — what each alias touches</b></summary>
+
+CIM/WMI classes, cmdlets, files, and endpoints behind every primitive. Workflows (`hawkdaily`, `secaudit`, …) and dispatch verbs (`sysdiag`, …) are pure aggregators that fan out to these.
 
 ### 🤖 AI & Workspace
 | Alias | Canonical | Sensor / Cmdlet |
@@ -286,63 +382,12 @@ What each alias touches under the hood — CIM/WMI classes, cmdlets, files, and 
 | `locate` | `Get-HawkAppLocation` | `Get-Command <name>` resolution trace |
 | `open` | `Invoke-ExplorerHere` | `Invoke-Item .` opens Explorer here |
 
----
+</details>
 
-## ── TTL CACHING ────────────────────────────────────────────────────────────
+<details>
+<summary><b>⚙️ Configuration, pipelines & performance</b></summary>
 
-The only session cache today is the git prompt segment (`$global:HawkPromptGitCache`, 2-second TTL per working directory) so the prompt stays snappy inside large repositories. Audit and map commands query WMI/CIM live on every invocation — no result caching, no `-Force` bypass needed.
-
----
-
-## ── OPERATIONAL WORKFLOWS ──────────────────────────────────────────────────
-
-
-Seven scenario-driven workflows with scoring (0–100) and actionable recommendations.
-
-| Workflow | Alias | Sources | Scoring |
-|:---|:---|:---|:---|
-| `Invoke-HawkDaily` | `hawkdaily` | health, uptime, disk, network, dns, events, temp, power | 8 sub-functions |
-| `Invoke-HawkSystemReview` | `sysreview` | spec, health, uptime, ram, disk, res, port, temp, hyperv, power, license | 11 sub-functions |
-| `Invoke-HawkSecurityAudit` | `secaudit` | fw, boot, schedtask, ghost, sus, storm, admin, shield | 8 sub-functions |
-| `Invoke-HawkNetworkDiagnostics` | `netdiag` | ping, wifi, dns, dnscache, linkspeed, shares, hosts, established, nettriage | 9 sub-functions |
-| `Invoke-HawkThreatHunt` | `threathunt` | sus, ghost, storm, badfiles, locked, sparse, compress, fw | THREATS/WARNINGS/INFO |
-| `Invoke-HawkChangeAudit` | — | recent, patches, drivers, dumps, boot, certs | 6 sub-functions |
-| `Invoke-HawkComplianceCheck` | — | admin, shield, fw gaps, non-MS tasks, boot, patches, license, hyperv, ports | 9 CIS-inspired checks |
-
-**Thresholds:** ≥80 🟢 | 50–79 🟡 | <50 🔴
-
-```powershell
-# Workflows emit per-check objects with .Score and .Recommendations
-secaudit | ForEach-Object { $_.Score }
-secaudit | ForEach-Object { $_.Recommendations }
-```
-
----
-
-## ── SEMANTIC RECALL (MEMORY) ────────────────────────────────────────────────
-
-
-Persistent JSONL at `~\Documents\PowerShell\Memory\hawk-memory.jsonl`.
-
-| Alias | Canonical | Description |
-|:---|:---|:---|
-| `remember` | `Add-HawkMemory` | Appends entry: Id, Type, Tags, Text (auto-redacted), Source, Created, Confidence, Pinned. |
-| `recall` | `Search-HawkMemory` | Reads JSONL, filters by `-Query`, `-Pinned`, `-First`. Scores by term hits (+2 if pinned). |
-| `memmap` | `Get-HawkMemoryMap` | Lists all with `-Tag`, `-Pinned`, `-First` filters. Sorts by Created desc. |
-| `readmem` | `Read-HawkMemory` | Returns all entries as `[HawkMemoryEntry]` objects. |
-
-**Auto-redaction:** `Text` field passed through `Protect-HawkSensitiveText` before write.
-
-```powershell
-remember "Prefer Q4_K_M for 1.7B models" -Tag preference -Pinned
-recall "quantization" -First 5
-memmap -Pinned
-```
-
----
-
-## ── GUIDED ONBOARDING ──────────────────────────────────────────────────────
-
+### Guided onboarding
 
 ```powershell
 onboard          # Interactive planner (prints steps, supports -WhatIf)
@@ -358,33 +403,12 @@ onboard -Apply   # Execute all 6 steps
 | 5 | `Invoke-HawkOnboardStep5` | Generate Modelfile from template + selected model |
 | 6 | `Invoke-HawkOnboardStep6` | Run `llama create powershellops -f <modelfile>` |
 
-Config persisted to `~\Documents\PowerShell\hawk-settings.json`.
-
----
-
-## ── QUALITY & INJECTION SCORING ────────────────────────────────────────────
-
-
-| Command | Description |
-|:---|:---|
-| `Get-HawkSourceQualityScore` | Heuristic 0–100: base 50, +20 if content >200 chars, +15 if >800 chars, +15 if `.gov`/`.edu`/`.org`. Cap 100. |
-| `Test-HawkPromptInjection` | Regex detection: `ignore (previous|above|all) instructions`, `you are now`, `system prompt`, `DAN.*mode`. Returns `$true`/`$false`. |
-
-**Integrated into `ggl -AI`:** Scores each scraped page, filters injection positives, only synthesizes from clean pages ≥50.
-
----
-
-## ── CONFIGURATION ──────────────────────────────────────────────────────────
+### Configuration
 
 ```powershell
-# Change project root at init
-Initialize-HawkProfile -ProjectRoot 'D:\Work' -ShowDashboard
-
-# Skip prereq module import
-Initialize-HawkProfile -SkipModules
-
-# Suppress dashboard
-$env:HAWK_NO_DASH = '1'
+Initialize-HawkProfile -ProjectRoot 'D:\Work' -ShowDashboard   # change project root at init
+Initialize-HawkProfile -SkipModules                            # skip prereq module import
+$env:HAWK_NO_DASH = '1'                                        # suppress dashboard
 ```
 
 | Variable | Default | Purpose |
@@ -393,46 +417,34 @@ $env:HAWK_NO_DASH = '1'
 | `$env:CI` | unset | Auto-suppresses dashboard |
 | `$global:HawkProjectRoot` | derived checkout/profile root | Project root for `proj` |
 | `~\Documents\PowerShell\hawk.config.json` | optional | Persists projectRoot, hfHome, llamaPort, modelPath |
-| `~\Documents\PowerShell\hawk-settings.json` | optional | Persists onboarding: project root, memory root, llama endpoint, selected model, modelfile path |
+| `~\Documents\PowerShell\hawk-settings.json` | optional | Persists onboarding settings |
 | `$script:HawkSensitiveNamePattern` | regex | Pattern for `secretredact` |
 
----
-
-## ── PIPELINE TIPS ──────────────────────────────────────────────────────────
+### Pipeline tips
 
 ```powershell
-# Chain commands — all Get-Hawk* output objects work with Where-Object, Format-Table, Export-Csv
-portmap | Format-Table -AutoSize
+portmap | Format-Table -AutoSize                 # chain with native cmdlets
 diskaudit | Where-Object { $_.FreePercent -lt 10 }
 bootmap | Export-Csv startup.csv
 
-# Pipe to AI
-resmap | ai "Which process is using the most RAM?"
-fwaudit | ai "Any gaps in firewall rules?"
+resmap | ai "Which process is using the most RAM?"     # pipe tool output to AI
+envmap -IncludeSensitive | secretredact | ai "Summarize"
 
-# Run a full daily ops scan
-hawkdaily
-
-# Run a security audit and check the score
-secaudit | ForEach-Object { $_.Score }
-
-# Export compliance check results
-Invoke-HawkComplianceCheck | Export-Csv compliance-report.csv
-
-# Redact before sending to AI
-envmap -IncludeSensitive | secretredact | ai "Summarize the environment"
-
-# Search the web + synthesize
-ggl "windows firewall hardening" -AI
-
-# One-word hub shortcuts
-hub stat
+ggl "windows firewall hardening" -AI              # web search + local synthesis
 hub ask "best way to trim TEMP folders?"
+Invoke-HawkComplianceCheck | Export-Csv compliance-report.csv
 ```
 
----
+### Quality & injection scoring
 
-## ── PERFORMANCE ────────────────────────────────────────────────────────────
+| Command | Description |
+|:---|:---|
+| `Get-HawkSourceQualityScore` | Heuristic 0–100: base 50, +20 if content >200 chars, +15 if >800 chars, +15 if `.gov`/`.edu`/`.org`. Cap 100. |
+| `Test-HawkPromptInjection` | Regex detection: `ignore (previous|above|all) instructions`, `you are now`, `system prompt`, `DAN.*mode`. Returns `$true`/`$false`. |
+
+Both are integrated into `ggl -AI`: pages are scored, injection positives filtered, synthesis runs only on clean pages ≥50.
+
+### Performance
 
 | Operation | Time |
 |:---|:---|
@@ -443,69 +455,12 @@ hub ask "best way to trim TEMP folders?"
 | First audit run | ~500ms–2s (depends on WMI queries) |
 | AI query (llama.cpp, first) | ~5–20s (model load) |
 | AI query (llama.cpp, cached) | ~500ms–5s |
-| Daily ops scan (cached) | ~1–3s |
-| Compliance check (cached) | ~2–5s |
 
-The 2.5s profile load is mainly from `Import-HawkPrerequisites` checking PSGallery. Second runs are faster due to caching. AI first-query latency depends on whether the selected llama.cpp model is already loaded.
+### Caching behavior
 
----
+The only session cache is the git prompt segment (`$global:HawkPromptGitCache`, 2-second TTL per working directory) so the prompt stays snappy inside large repositories. Audit and map commands query WMI/CIM live on every invocation — no result caching, no `-Force` bypass needed.
 
-## ── COMPLETE ALIAS INDEX ──────────────────────────────────────────────────
-
-> All aliases are global. Run `dash` for interactive menu.
-
-### 🤖 AI & Workspace
-`ai` · `proj` · `reload` · `dash` · `hawkman` · `hawkhelp` · `ggl` · `hawkchat` · `hawkmodel` · `hawkdaily` · `hawkwatch` · `projaudit` · `hawkreport`
-
-### 🛡️ Security Audit
-`ghostaudit` · `fwaudit` · `susaudit` · `diskaudit` · `taskaudit` · `evntaudit` · `defendermap` · `regaudit` · `ifeoaudit` · `regsnap` · `secretredact`
-
-### 🩺 Diagnostics
-`sysview` · `hawkdoctor` · `hawkcheck` · `evntmap` · `resmap`
-
-### 🌍 Environment
-`fwmap` · `envmap` · `pathaudit` · `portmap` · `nettriage` · `bootmap`
-
-### 🦙 Llama Server
-`llamastart` · `llamastop` · `aidoctor` · `llamadoctor`
-
-### 🖥️ System Matrix
-`specs` · `uptime` · `raminfo` · `battery` · `temps` · `fans` · `displays` · `hypervisor` · `power` · `license`
-
-### 🌐 Network Intel
-`wifi` · `dnsbench` · `linkspeed` · `shares` · `hostscheck` · `dnscache`
-
-### 🔍 Security Scan
-`shield` · `admins` · `apps` · `patchhistory` · `driveraudit` · `certs`
-
-### 💾 Storage
-`clipcheck` · `recent` · `drivehealth` · `dumps` · `badfiles` · `links` · `locked` · `sparse` · `compress`
-
-### 🧰 Utilities
-`locate` · `open`
-
-### ⚡ Short Verbs & Hub
-`ask` · `fix` · `stat` · `mem` · `hub`
-
-### 🎯 Dispatch Verbs
-
-`sysdiag` · `auditdiag` · `netview` · `envdiag`
-
-### 📋 Workflows
-
-`hawkdaily` · `sysreview` · `secaudit` · `netdiag` · `threathunt`
-
-### 🧠 Memory
-
-`remember` · `recall` · `memmap` · `readmem`
-
-### 🧭 Onboarding
-
-`onboard` (interactive 6-step planner; steps also callable as Invoke-HawkOnboardStep1..6)
-
-### 🔍 Quality
-
-`Get-HawkSourceQualityScore` · `Test-HawkPromptInjection`
+</details>
 
 ---
 
