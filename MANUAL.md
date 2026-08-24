@@ -1,343 +1,330 @@
-# 🦅 PowershellOps — Quick Reference Manual
+# PowershellOps — Quick Reference Manual
 
-> v11.3 · Ops Toolkit  
-> Load time: **~137ms** (module) · **~2.3s** (full profile)  
-> Total: **103 exported functions** · **safe `Ops-*` aliases** · **4 consolidated dispatch verbs** · **7 scenario workflows**
-
----
-
-## 1. Dashboard
-
-```
-dash              # Re-render the startup dashboard
-watch             # Live-refresh dashboard (Ctrl+C to exit)
-```
-
-The dashboard queries Ollama `/api/tags` (2s timeout) to report AI status (ACTIVE/STANDBY), reads `$global:OpsProjectRoot`, and renders commands organized into 7 sub-category groups. Columns auto-fit to console width (1/2/4). `watch` polls every 2 seconds (configurable via `-IntervalSeconds`).
+> v12.0.0 · Agentic Stack for Windows  
+> Load time: **~150ms** (module) · **~2.5s** (full profile)  
+> Total: **126 exported functions** · **90 global aliases** · **4 alias suites** · **7 operational workflows** · **5 semantic recall commands** · **4 dispatch verbs**
 
 ---
 
-## 2. 🖥️ SYSTEM
+## 1. Dashboard & Navigation
 
-### System Health (`health`, `spec`, `uptime`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `health` | `Get-OpsHealth` | `Get-CimInstance Win32_OperatingSystem` → total RAM, free RAM; `Get-CimInstance Win32_Processor` → avg CPU load%; `(Get-Process).Count` → process count; handle count via `Measure-Object -Sum HandleCount` |
-| `spec` | `Get-OpsSpec` | `Get-CimInstance Win32_Processor` (Name, Cores); `Get-CimInstance Win32_VideoController` (GPU Description). Cached 300s. |
-| `uptime` | `Get-OpsUptime` | `(Get-CimInstance Win32_OperatingSystem).LastBootUpTime` → computes `(Get-Date) - $lastBoot`. Cached 10s. |
-
-### System Hardware (`ram`, `battery`, `display`, `hyperv`, `powerplan`, `license`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `ram` | `Get-OpsRamInfo` | `Get-CimInstance Win32_PhysicalMemory` → BankLabel, CapacityGB (via `/1GB`), Speed (MHz), Manufacturer. Cached 600s. |
-| `battery` | `Get-OpsBattery` | `Get-CimInstance Win32_Battery` → DesignCapacity, FullChargeCapacity, health% (`Full / Design * 100`). Returns `'No battery hardware tracked'` if absent. Cached 30s. |
-| `display` | `Get-OpsDisplay` | `Get-CimInstance Win32_VideoController` → Description, VideoModeDescription. Cached 600s. |
-| `hyperv` | `Get-OpsHypervisor` | `(Get-CimInstance Win32_ComputerSystem).Model` → matches `(VirtualBox\|VMware\|Virtual Machine\|Hyper-V\|QEMU\|KVM\|Xen)` → returns `'Virtual'` or `'Physical'` with Model name |
-| `powerplan` | `Get-OpsPower` | `Get-CimInstance -Namespace root\cimv2\power Win32_PowerPlan -Filter "IsActive=True"` → ElementName |
-| `license` | `Get-OpsLicense` | `Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationId='55c92734-...'"` → LicenseStatus (Licensed/Unlicensed/N/A), PartialProductKey |
-
-### System Storage (`disk`, `temp`, `clip`, `smarts`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `disk` | `Get-OpsDiskPressureAudit` | `Get-CimInstance Win32_LogicalDisk` (DriveType=3) → SizeGB, FreeGB, FreePercent (`Free / Max(1,Size) * 100`). Cached 30s. |
-| `temp` | `Get-OpsTempCheck` | `[System.IO.Directory]::EnumerateFiles($env:TEMP, '*', AllDirectories)` → sums file lengths via `[System.IO.FileInfo]`. Returns total SizeMB. |
-| `clip` | `Get-OpsClipCheck` | `Get-Clipboard -Raw` → character count. Returns 0 if unavailable or empty. |
-| `smarts` | `Get-OpsDriveHealth` | `Get-CimInstance -Namespace root\wmi MSStorageDriver_FailurePredictStatus` → InstanceName, PredictFailure. May return empty on systems without SMART support via WMI. |
-
-### System Performance (`res`, `port`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `res` | `Get-OpsResourceMap` | `Get-Process \| Sort-Object WorkingSet -Descending \| Select -First 10` → process name, PID, CPU (s), RAM (MB via `WorkingSet / 1MB`). Cached 5s. |
-| `port` | `Get-OpsPortMap` | Prefers `Get-NetTCPConnection -State Listen` on Windows; falls back to `[IPGlobalProperties]::GetActiveTcpListeners()` → port, PID, process name (via `Get-Process` lookup). Fallback shows `'System Listen Stack'`. Cached 10s. |
+| Alias | Canonical | Description |
+|:---|:---|:---|
+| `dash` | `Show-HawkDashboard` | Renders the command dashboard grouped into 11 suites with AI engine ACTIVE/STANDBY header. Columns auto-fit to console width. |
+| `hawkwatch` | `Watch-HawkDashboard` | Live-refresh dashboard every N seconds (`-IntervalSec`, default 10, min 3). Press `q` or `Esc` to exit. |
+| `hawkman` | `Show-HawkManual` | Opens this manual in default editor/browser. |
+| `hawkhelp` | `Invoke-HawkHelp` | Asks the local AI which Hawk command fits your task — injects full command reference into context. |
+| `reload` | `Update-HawkProfile` | Dot-sources `$PROFILE` to pick up changes without restarting the shell. Prints elapsed ms. |
 
 ---
 
-## 3. 🛡️ SECURITY
+## 2. 🤖 AI ENGINE & WORKSPACE
 
-### Access & Firewall (`admin`, `shield`, `fw`)
+### Core AI
 
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `admin` | `Get-OpsAdmin` | `Get-LocalGroupMember -Group Administrators` → Name, PrincipalSource, ObjectClass |
-| `shield` | `Get-OpsShield` | `Get-MpComputerStatus` → AntivirusEnabled, RealTimeProtectionEnabled, LastQuickScanTime, LastQuickScanResult, AMServiceEnabled |
-| `fw` | `Get-OpsFirewallAudit` | `Get-OpsPortMap` for active listeners → `Get-NetFirewallRule -Enabled True -Direction Inbound -Action Allow` → extracts `LocalPort` via `Get-NetFirewallPortFilter` → cross-refs each listener; flags unmatched ports as `NO_MATCHING_INBOUND_ALLOW_RULE`. Falls back to `'NetSecurity Module Missing'` if cmdlets unavailable. Cached 60s. |
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `ai` | `Invoke-HawkAI` | Streams piped input + prompt to local llama.cpp (`/v1/chat/completions`). Auto-starts server on connection failure. Retry logic with backoff. `-RedactSensitive` scrubs secrets via regex before send. |
+| `hawkchat` | `Invoke-HawkChat` | Multi-turn REPL with 16-turn conversation memory. Commands: `/exit`, `/quit`, `/q`, `/clear`, `/help`. |
+| `hawkmodel` | `Get-HawkModel` | Scans `$env:USERPROFILE\Models\GGUF` for `*.gguf`. Marks active model from config. `-Switch <substring>` persists new model to `hawk.config.json` and restarts llama-server. |
+| `hawkdaily` | `Invoke-HawkDaily` | Runs full ops sweep (all suites), writes timestamped Markdown to `~\Documents\PowerShell\Reports\`. `-Open` opens report. `-RegisterTask` creates daily Task Scheduler entry at `-AtHour` (default 9). `-RemoveTask` deletes it. |
+| `hawkwatch` | `Watch-HawkDashboard` | Clears screen and redraws dashboard every `-IntervalSec` (default 10s, min 3). `q`/`Esc` quits. |
+| `proj` | `Invoke-HawkProject` | `cd` to configured `projectRoot` from `hawk.config.json`. |
+| `projaudit` | `Get-HawkProjectAudit` | Walks `projectRoot`, finds git repos, shows branch, dirty file count, last commit. `-PassThru` returns objects. |
+| `hawkreport` | `New-HawkReport` | Aggregates all suites (AI models, disk, resources, ports, firewall gaps, startup, task risks, event storms). Renders console + saves Markdown/JSON (`-Format`). `-Path` overrides output location. |
 
-### Persistence & Anomalies (`boot`, `schedtask`, `ghost`, `sus`, `storm`)
+### Search & Web
 
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `boot` | `Get-OpsBootMap` | Enumerates `HKLM:\Software\Microsoft\Windows\CurrentVersion\Run` and `HKCU:\...\Run` via `Get-ItemProperty` → filters out `PS*` properties → returns Hive, Name, Target. Cached 300s. |
-| `schedtask` | `Get-OpsScheduledTaskRiskAudit` | `Get-ScheduledTask \| Where-Object State -ne Disabled -and TaskPath -notmatch '^\\\\Microsoft'` → returns TaskName, TaskPath (first 10). Does not inspect publishers or executable paths. Cached 300s. |
-| `ghost` | `Get-OpsGhostPortAudit` | `Get-OpsPortMap \| Where-Object Process -in @('Unknown','System Listen Stack')` → ports whose owning PID has no matching process (orphaned). Handles both `Get-NetTCPConnection` and fallback paths. |
-| `sus` | `Get-OpsSuspiciousProcessAudit` | `Get-Process \| Where-Object Path -match '(\\AppData\\\|\\Temp\\\|\\Windows\\Temp\\)'` → returns Name, Id, Path, CPU, RAMMB. |
-| `storm` | `Get-OpsEventStormAudit` | `Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=(15 min ago)} -MaxEvents 200` → groups by `ProviderName`, returns top 5 counts. Application log only, last 15 min. Cached 20s. |
-
-### Inventory & Data Protection (`cert`, `dump`, `badfile`, `link`, `lock`, `sparse`, `compress`, `patch`, `driver`, `recent`, `secretredact`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `cert` | `Get-OpsCert` | `Get-ChildItem Cert:\CurrentUser\My` → Subject, Thumbprint, NotAfter |
-| `dump` | `Get-OpsDump` | `Get-ChildItem "$env:windir\Minidump"` → lists all dump files with Name, Length |
-| `badfile` | `Get-OpsBadFile` | `Get-ChildItem -File` → filters files >500MB; cross-refs known ransomware extensions (.encrypt, .locked, .crypt, .xyz, .zepto, .cerber). Returns counts and largest file size. |
-| `link` | `Get-OpsLink` | `New-Object -ComObject WScript.Shell` → resolves each `.lnk` file in current directory via `CreateShortcut().TargetPath`. Returns Name and Target. |
-| `lock` | `Get-OpsLock` | Attempts `[System.IO.File]::Open($path, 'Open', 'ReadWrite', 'None')` on files in target path (default: current dir) → reports locked files with exception message. |
-| `sparse` | `Get-OpsSparseFile` | `Get-ChildItem -Recurse \| Where-Object Attributes -band [System.IO.FileAttributes]::SparseFile` → FullName, Length. First 20. |
-| `compress` | `Get-OpsCompressedDir` | `Get-ChildItem -Recurse \| Where-Object PSIsContainer -and Attributes -band [System.IO.FileAttributes]::Compressed` → FullName, CompressedSizeKB. First 20. |
-| `patch` | `Get-OpsPatchHistory` | `Get-CimInstance Win32_QuickFixEngineering` → HotFixID, InstalledOn. Sorted descending, first 5. |
-| `driver` | `Get-OpsDriverAudit` | `Get-CimInstance Win32_PnPSignedDriver` → filters `IsSigned -eq $false` → DeviceName, DriverVersion, DriverDate. First 10. |
-| `recent` | `Get-OpsRecent` | `Get-ChildItem (Join-Path $env:APPDATA 'Microsoft\Windows\Recent')` → Name, LastWriteTime. Sorted descending, first 5. |
-| `secretredact` | `Protect-OpsSensitiveText` | Regex `$script:OpsSensitiveNamePattern` matches keys containing `secret`, `token`, `password`, `credential`, `connection.?string`, `sas`, `bearer`, `api.?key`, `private.?key` → replaces values with `<REDACTED>`. Handles both `key=value` and JSON `"key":"value"` formats. |
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `ggl` | `Invoke-HawkSearch` | Without `-AI`: opens browser (`Start-Process`). With `-AI`: POSTs to DuckDuckGo Lite, extracts `uddg=` redirect links, resolves via scrapes up to N pages (`-Sources`, default 5), strips HTML, runs quality scoring + prompt-injection detection, pipes to `Invoke-HawkAI` for synthesis. `-Deep` = more sources + fuller pages. `-News` pulls Google News RSS (headlines + dates + sources → article bodies → local synthesis). Rate-limited to 1 req/5s. |
 
 ---
 
-## 4. 🌐 NETWORK
+## 3. 🛡️ SECURITY AUDIT
 
-### Connectivity (`ping`, `wifi`, `established`, `dns`, `dnscache`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `ping` | `Get-OpsNetCheck` | `Test-Connection -ComputerName 1.1.1.1 -Count 1 -Quiet` → returns `$true`/`$false` for Internet reachability |
-| `wifi` | `Get-OpsWifi` | `netsh wlan show interfaces` → parses SSID, Signal% from output. Returns `'Disconnected'`/`'N/A'` if no Wi-Fi interface. |
-| `established` | `Get-OpsEstablished` | `Get-NetTCPConnection -State Established` → LocalPort, RemotePort, RemoteAddress, ProcessName (resolved from OwningProcess). First 20, sorted by RemoteAddress. Falls back gracefully if cmdlet unavailable. |
-| `dns` | `Get-OpsDnsBench` | `Resolve-DnsName google.com -Server 1.1.1.1/8.8.8.8/9.9.9.9 -QuickTimeout` → measures response time (ms) per resolver. Uses Stopwatch for precision. |
-| `dnscache` | `Get-OpsDnsCache` | `Get-DnsClientCache` → Entry, Type, TimeToLive, DataLength. First 20, sorted by TTL. |
-
-### Services (`linkspeed`, `smb`, `hosts`, `nettriage`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `linkspeed` | `Get-OpsLinkSpeed` | `Get-NetAdapter \| Where-Object Status -eq Up` → Name, LinkSpeed, InterfaceDescription, MacAddress |
-| `smb` | `Get-OpsShare` | `Get-CimInstance Win32_Share` → Name, Path, Description |
-| `hosts` | `Get-OpsHostsCheck` | `Get-Content "$env:windir\System32\drivers\etc\hosts"` → filters comment/blank lines, parses each entry into IP + Hostname columns |
-| `nettriage` | `Get-OpsNetworkTriage` | `Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled=True"` → Description, IPAddress, MACAddress |
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `ghostaudit` | `Get-HawkGhostPortAudit` | `Get-NetTCPConnection -State Listen` → cross-references owning PID against live process table. Returns ports with no matching process. |
+| `fwaudit` | `Get-HawkFirewallAudit` | Gets live listeners (`Get-NetTCPConnection`) + enabled inbound allow rules (`Get-NetFirewallRule`). Extracts `LocalPort` via `Get-NetFirewallPortFilter`. Flags ports with no matching rule. |
+| `susaudit` | `Get-HawkSuspiciousProcessAudit` | `Get-Process` → filters `Path -match '(AppData|Temp)'`. Returns Name, Id, Path, CPU, RAM. |
+| `diskaudit` | `Get-HawkDiskPressureAudit` | `Get-CimInstance Win32_LogicalDisk` (DriveType=3) → SizeGB, FreeGB, Free%. `-IncludeHogs` adds top N largest files under `-HogPath` + temp folder footprint. |
+| `taskaudit` | `Get-HawkScheduledTaskRiskAudit` | `Get-ScheduledTask | Where State -ne Disabled` → filters actions referencing `AppData`, `Temp`, `powershell`, `pwsh`, `cmd`. |
+| `evntaudit` | `Get-HawkEventStormAudit` | `Get-WinEvent -FilterHashtable @{LogName='System','Application'; Level=2,3; StartTime=(30 min ago)}` → groups by EventId, flags groups > threshold (default 5). Marks hive-corruption IDs 6008/9/11/15. |
+| `defendermap` | `Get-HawkDefenderAudit` | `Get-MpComputerStatus` + `Get-MpPreference` + `Get-MpThreatDetection`. Returns: EngineMode, RealTimeProtection, BehaviorMonitoring, NetworkInspection, SignatureAge, TamperProtection, Exclusions, Detections. Color-coded. |
+| `regaudit` | `Get-HawkRegAudit` | Enumerates `HKLM:\...\Run`, `HKCU:\...\Run`, `HKLM:\...\RunOnce`, `HKCU:\...\RunOnce`, plus WOW64 variants. Resolves each entry's target exe, checks existence, `Get-AuthenticodeSignature`, flags uncommon locations. Risk: Low/Medium/High + notes (safe-mode, deferred-delete, one-shot, shell-chain, missing-binary). `-SkipWow64` skips 32-bit view. |
+| `ifeoaudit` | `Get-HawkIfeoAudit` | Scans `HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options` + HKCU equivalent for `Debugger` values. Read-only. |
+| `regsnap` | `Save-HawkRegistrySnapshot` | `reg.exe export <KeyPath> <Reports>\<Name>-<timestamp>.reg`. Restore hint: `reg import <file>`. |
+| `secretredact` | `Protect-HawkSensitiveText` | Regex `$script:HawkSensitiveNamePattern` matches keys containing `secret`, `token`, `password`, `credential`, `connection.?string`, `sas`, `bearer`, `api.?key`, `private.?key`. Replaces `key=value` and JSON `"key":"value"` with `<REDACTED>`. |
 
 ---
 
-## 5. ⚙️ ENVIRONMENT
+## 4. 🩺 DIAGNOSTICS
 
-### Configuration
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `envmap` | `Get-OpsEnvMap` | `Get-ChildItem Env:` → Name, Value. No built-in redaction (pipe through `secretredact` to redact). |
-| `path` | `Get-OpsPathAudit` | `$env:Path -split ';'` → validates each entry with `Test-Path`; flags missing/inaccessible |
-| `app` | `Get-OpsApp` | `Get-ItemProperty` on `HKLM:\Software\...\Uninstall\*`, `Wow6432Node\...\Uninstall\*`, `HKCU:\...\Uninstall\*` → DisplayName, DisplayVersion. |
-| `where` | `Get-OpsAppLocation` | `Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue` → returns full path(s) of an executable in PATH |
-| _(none)_ | `Get-OpsProject` | Returns `$global:OpsProjectRoot` (or the derived checkout/profile root, or `$Ops_PROJECT_ROOT`) |
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `sysview` | `Get-HawkSysView` | One-shot ~25 lines: uptime (`Win32_OperatingSystem`), RAM%, disk usage (`Win32_LogicalDisk`), temp cleanup candidates, critical services (Spooler/WinDefend/WSearch/Dhcp/Dnscache/EventLog/llama-server), ping 8.8.8.8, Defender RT+defs age, pending reboot, AI server state. |
+| `hawkdoctor` | `Get-HawkDoctor` | Profile parse check, required modules availability, `projectRoot` exists, llama reachable, Terminal-Icons prefs present. |
+| `hawkcheck` | `Test-HawkSetup` | Integration test table: modules, engine (pwsh+llama binaries), model file, config, HF_HOME consistency, AI known-answer round-trip ('2+2'), auto-start proof (stops server, verifies `Invoke-HawkAI` restarts it). `-SkipAI` skips AI checks. Returns `{ Passed, Checks }`. |
+| `evntmap` | `Get-HawkEventMap` | Last `-MaxEvents` (20) warnings/errors from System/Application logs. `-RegistryHealth` adds hive-corruption scan (event IDs 6008,9,11,15 per KB822705). |
+| `resmap` | `Get-HawkResourceMap` | Top `-Top` (10) processes by WorkingSet with RAM MB, CPU sec, Company. |
 
 ---
 
-## 6. 🧠 AI & SEARCH
+## 5. 🌍 ENVIRONMENT
 
-### Query (`ai`, `ggl`, `intent`, `aiprofile`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `ai` | `Invoke-OpsAI` | Sends prompt + piped input as `{prompt}` to the configured Ollama model at `http://127.0.0.1:11434/api/generate` (`stream: true`). Constructs a system contract, context envelope from `Build-OpsAIContextPacket`, and pipeline data. Uses `HttpClient.PostAsync` + `StreamReader.ReadLine` for token-by-token streaming. Supports `-Remember`, `-RedactSensitive`, `-MaxRetries` (with 3s back-off). |
-| `ggl` | `Invoke-OpsSearch` | Without `-AI`: opens browser (`Start-Process $url`). With `-AI`: POSTs to DuckDuckGo Lite, extracts `uddg=` redirect links, resolves via `Resolve-OpsDuckDuckGoHref`, scrapes up to N pages (configurable via `-Sources`, default 5), strips `<style>`/`<script>`/HTML tags, runs quality scoring and prompt-injection detection, then pipes to `Invoke-OpsAI` for synthesis. Rate-limited to one request per 5s. |
-| `intent` | `Get-OpsAIIntent` | Classifies user prompt via regex matching against `\b(search|web|online)\b` → Research, `\b(command|script|cmdlet)\b` → Shell, `\b(compare|changed|since)\b` → Compare, `\b(summarize|explain|why)\b` → Explain. Returns `'AnalyzeData'` if no pattern matches. |
-| `aiprofile` | `Get-OpsAIDataProfile` | Profiles piped input: determines Kind (`Empty`/`Text`/`Table`/`Object`), Row count, Column names (first 24, excludes PS* properties). Does not compute value ranges, null %, or memory size. |
-
-### Quality (`quality`, `injecttest`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `quality` | `Get-OpsSourceQualityScore` | Heuristic score (0-100) for scraped web content: base 50, +20 if content >200 chars, +15 if >800 chars, +15 if URL from `.gov`/`.edu`/`.org`. Returns `[Math]::Min(100, score)`. |
-| `injecttest` | `Test-OpsPromptInjection` | Tests payload against regex: `ignore (previous\|above\|all) instructions`, `you are now`, `system prompt`, `DAN.*mode`. Returns `$true`/`$false` only (no severity). |
-
-### AI Status
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `aistatus` | `Get-OpsAIStatus` | `Invoke-RestMethod` against the configured Ollama endpoint `/api/tags` → lists pulled Ollama models with name, size, modification date |
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `fwmap` | `Get-HawkFirewallMap` | First `-First` (15) enabled inbound allow rules (`Get-NetFirewallRule`). |
+| `envmap` | `Get-HawkEnvMap` | Env vars across Process/Machine/User scopes. REG_EXPAND_SZ expanded. Sensitive-named values redacted unless `-IncludeSensitive`. `-Scope All|Process|Machine|User`. |
+| `pathaudit` | `Get-HawkPathAudit` | Validates PATH segments exist, flags duplicates/empties. `-IncludeRegistry` audits persisted Machine/User PATH. `-PassThru` returns objects. |
+| `portmap` | `Get-HawkPortMap` | `Get-NetTCPConnection` enriched with process name/company. `-State Listen|Established|All`. |
+| `nettriage` | `Get-HawkNetworkTriage` | Listeners + owning process + matching firewall rule. `-WanCheck` prepends 1.1.1.1 ping + IPv4 interface summary. |
+| `bootmap` | `Get-HawkBootMap` | HKLM/HKCU Run-key startup entries (hive/name/target/source). |
 
 ---
 
-## 7. 🧠 MEMORY SYSTEM
+## 6. 🦙 LLAMA SERVER CONTROL
 
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `remember` | `Add-OpsMemory` | Appends a JSONL entry to `$script:OpsMemoryFile` with Id (`mem_{yyyyMMdd_HHmmss}_{guid[0:6]}`), Type (note/preference/runbook/session/web/sysops), Tags, Text (auto-redacted via `Protect-OpsSensitiveText`), Source, Created (ISO 8601), Confidence (low/medium/high/user), Pinned flag. Supports `-WhatIf`. |
-| `recall` | `Search-OpsMemory` | Reads `ops-memory.jsonl`, parses lines with `ConvertFrom-Json -AsHashtable` into `[OpsMemoryEntry]`. Accepts `-Query` (term-matching), `-Pinned`, `-First`. Scores results by term hit count (+2 if pinned), sorts by score desc then Created desc. |
-| `memmap` | `Get-OpsMemoryMap` | Reads entire `ops-memory.jsonl`; supports `-Tag`, `-Pinned`, `-First` (default 40). Sorts by Created desc. |
-| `readmem` | `Read-OpsMemory` | Reads all entries from `ops-memory.jsonl` and returns them as `[OpsMemoryEntry]` objects. No parameter filtering (use `Search-OpsMemory` for queries). |
-| `memfile` | `Get-OpsMemoryFile` | Returns the resolved path to `ops-memory.jsonl`; creates the `Memory/` directory if absent. |
-
-### AI Context Builders
-
-| Full command | Under the hood |
-|-------------|----------------|
-| `Build-OpsAIContextPacket` | Builds context envelope: determines Mode (Fast/Deep/Balanced) from instruction keywords, gets Intent via `Get-OpsAIIntent`, profiles data via `Get-OpsAIDataProfile`, optionally appends memory context via `Build-OpsAIMemoryContext`. Returns `[PSCustomObject]` with Intent, Mode, and formatted Text. |
-| `Build-OpsAIMemoryContext` | Reads top 3 pinned entries + up to `$First` entries matching query → formats as bulleted memory context lines. |
-
-### Memory Format Helpers
-
-| Full command | Under the hood |
-|-------------|----------------|
-| `Format-OpsMemoryId` | Generates ID string: `mem_{yyyyMMdd_HHmmss}_{6-char-guid}` |
-| `Format-OpsMemorySnippet` | Truncates memory text to configurable length (default 220 chars), strips newlines. |
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `llamastart` | `Start-HawkLlamaServer` | Launches `llama-server` hidden with configured model/port (context 32768, 8 threads, flash-attn). Logs to `%LOCALAPPDATA%\llama-app\logs`. Returns process. |
+| `llamastop` | `Stop-HawkLlamaServer` | Kills `llama.exe` matching `--port`. |
+| `aidoctor` | `Get-HawkLlamaStatus` | `Invoke-RestMethod http://127.0.0.1:8081/v1/models` → renders endpoint/status/model/size. `-Start` auto-launches when offline. |
+| `llamadoctor` | `Invoke-HawkLlamaDoctor` | Wrapper: `Get-HawkLlamaStatus -Start`. |
 
 ---
 
-## 8. 📊 REPORTS
+## 7. 🖥️ SYSTEM MATRIX — HARDWARE
 
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `Opsreport` | `New-OpsReport` | Gathers: `Get-OpsAIStatus` (AI engine), `Get-OpsDiskPressureAudit` (volumes), `Get-OpsResourceMap` (top 10 processes), `Get-OpsPortMap` (listeners), `Get-OpsFirewallAudit` (firewall cross-ref), `Get-OpsBootMap` (startup persistence), `Get-OpsScheduledTaskRiskAudit` (scheduled tasks), `Get-OpsEventStormAudit` (log storms). Suppresses `Write-OpsHeader` during collection. Renders as console tables via `Write-OpsReportTable` + saves Markdown to `Reports/Opsreport-{timestamp}.md`. File write respects `-WhatIf`; table rendering does not. Supports `-Format Json`. |
-| `reportpath` | `Get-OpsReportPath` | Returns `$script:OpsReportRoot/Opsreport-{yyyyMMdd-HHmmss}.{ext}`. Creates `Reports/` directory if absent. |
+All matrix probes are parameterless, query live sensors, and use no caching.
 
-### Report Formatting Pipeline
-
-| Full command | Under the hood |
-|-------------|----------------|
-| `ConvertTo-OpsReportMarkdown` | Converts `$report` hashtable into structured Markdown — H2 sections, tables, code blocks |
-| `ConvertTo-OpsMarkdownTable` | Converts an array of objects into a GitHub-flavored Markdown table |
-| `Format-OpsReportCell` | Truncates/pads a single value for table cell display |
-| `Write-OpsReportTable` | `Write-Host` rendering of a bordered table — Title, icon, color, column specifiers with inline padding |
-
----
-
-## 9. 🔧 MODULE & SHELL
-
-### Shell (`dash`, `watch`, `Opsman`, `reload`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `dash` | `Show-OpsDashboard` | Queries Ollama `/api/tags` (2s timeout), resolves project root, renders 7-category sub-grouped command grid with aliases. Columns auto-fit to console width (1/2/4). Uses `Get-Command -Module PowershellOps` for command listing and `Get-Alias` for alias resolution. |
-| `watch` | `Watch-OpsDashboard` | `while($true) { Clear-Host; Show-OpsDashboard; Start-Sleep -Seconds 2 }` — polls and re-renders every 2 seconds (configurable via `-IntervalSeconds`). Gates on `Test-OpsInteractiveSession`. |
-| `Opsman` | `Show-OpsManual` | Opens MANUAL.md (`Invoke-Item $manualPath`) in default editor/browser. |
-| `reload` | `Update-OpsProfile` | Dot-sources `$PROFILE` (`. $PROFILE`) — reimports module, re-runs `Initialize-OpsProfile`. Supports `-WhatIf`. |
-
-### Config & Utilities (`init`, `proj`, `projset`, `explorer`, `cached`)
-
-| Alias | Full command | Under the hood |
-|-------|-------------|----------------|
-| `init` | `Initialize-OpsProfile` | Sets `$global:OpsProjectRoot` → imports prerequisites via `Import-OpsPrerequisite` (`Terminal-Icons`, `PSReadLine`, `PSTree`) → validates expected module metadata → configures PSReadLine (prediction source History + ListView mode) → sets safe `Ops-*` aliases (`Set-OpsAliases`) → sets prompt (`Set-OpsPrompt`). `-SkipModules` bypasses prereq import; `-ShowDashboard` forces dashboard render. Supports `-WhatIf`. |
-| `opsonboard` | `Invoke-OpsOnboard` | Manual onboarding planner. Reviews/sets project root, memory root, Ollama endpoint, and model choice; discovers local models via `ollama list` or `/api/tags`; prints the full `Invoke-OpsOnboardStep*` command plus the `onboardstep*` alias for copy/edit/paste. Supports `-Apply` and `-WhatIf`. |
-| `onboardstep1` | `Invoke-OpsOnboardStep1` | Auto-runs with the default project root unless you override it; saves the project root to config and session state. |
-| `onboardstep2` | `Invoke-OpsOnboardStep2` | Auto-runs with the default memory root derived from the project root unless you override it; creates and saves the local memory root. |
-| `onboardstep3` | `Invoke-OpsOnboardStep3` | Verifies the Ollama endpoint and stores it in config. |
-| `onboardstep4` | `Invoke-OpsOnboardStep4` | Chooses the installed local model and persists the selection. |
-| `onboardstep5` | `Invoke-OpsOnboardStep5` | Generates the local Modelfile automatically from the bundled template and selected model. This is the step that makes the file. |
-| `onboardstep6` | `Invoke-OpsOnboardStep6` | Runs `ollama create powershell-ops -f "<model-file>"` using the generated Modelfile. |
-| `proj` | `Get-OpsProject` | Returns the current `$global:OpsProjectRoot` path |
-| `projset` | `Invoke-OpsProject` | Sets `$global:OpsProjectRoot` to a new path (or defaults to the derived checkout/profile root). Supports `-WhatIf`. |
-| `explorer` | `Invoke-ExplorerHere` | `Start-Process explorer.exe -ArgumentList (Get-Location).Path` — opens current directory in File Explorer |
-| `cached` | `Invoke-OpsCachedData` | Thread-safe key-value cache (`[hashtable]::Synchronized`) with per-key TTL. Accepts `-Key`, `-ExpirySeconds`, `-ScriptBlock`. Used internally by health checks, firewall audit, port map, and scheduled task audit. |
-
-### Module Maintenance
-
-| Full command | Under the hood |
-|-------------|----------------|
-| `Install-OpsPrerequisite` | `Install-Module Terminal-Icons, PSReadLine, PSTree -Scope CurrentUser -Force -ErrorAction Stop`, then validates the installed module metadata against the expected author/company profile. Supports `-WhatIf`. |
-| `Import-OpsPrerequisite` | `Import-Module Terminal-Icons, PSReadLine, PSTree -ErrorAction SilentlyContinue`. Returns status per module (Imported/Missing/Failed). |
-| `Update-OpsModule` | Walks up from `$PSScriptRoot` to find `.git` directory → `git pull` → `Remove-Module PowershellOps` → `Import-Module PowershellOps.psd1 -Force -Global`. Supports `-WhatIf`. |
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `specs` | `Get-HawkSpecs` | Hardware blueprint: CPU name/cores (`Win32_Processor`), vendor/model (`Win32_ComputerSystem`), GPU (`Win32_VideoController`) → `Format-List`. |
+| `uptime` | `Get-HawkUptime` | `Win32_OperatingSystem.LastBootUpTime` vs now → boot anchor + continuous run time as `Nd Nh Nm`. |
+| `raminfo` | `Get-HawkRamInfo` | `Win32_PhysicalMemory`: per-slot BankLabel, Capacity, Speed, Manufacturer. |
+| `battery` | `Get-HawkBattery` | `Win32_Battery`: Design vs FullCharge capacity; health % = FullCharge/Design·100 (N/A when design value missing). Graceful "no battery hardware" message on desktops. |
+| `temps` | `Get-HawkThermals` | ACPI thermal zones (`root/wmi MSAcpi_ThermalZoneTemperature`), Kelvin-tenths → °C. Classifies NOMINAL / WARM ≥50 / HOT ≥70 / CRITICAL ≥85. Hints at vendor drivers/admin elevation when no zones are exposed. |
+| `fans` | `Get-HawkFans` | `Win32_Fan` → Name, Status, RPM. Explains that fan curves are EC/vendor-controlled when WMI exposes nothing. |
+| `displays` | `Get-HawkDisplays` | `Win32_VideoController` → adapter Description + current VideoModeDescription. |
+| `hypervisor` | `Get-HawkHypervisor` | `Win32_ComputerSystem` flags: HypervisorPresent + VirtualizationFirmwareEnabled. |
+| `power` | `Get-HawkPower` | Parses `powercfg /getactivescheme` output line-by-line. |
+| `license` | `Get-HawkLicense` | `Win32_SoftwareLicensingProduct` filtered on `PartialProductKey` → Name + LicenseStatus; graceful fallback if the CIM class is unavailable. |
 
 ---
 
-## 10. 🔄 WORKFLOWS
+## 8. 🌐 NETWORK INTEL
 
-> Each workflow combines multiple single-purpose functions into a scenario-driven scored report with color-coded status, drill-down sections, and actionable recommendations. Workflows use `Invoke-OpsCachedData` for per-key TTL caching across runs.
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `wifi` | `Get-HawkWifi` | Parses `netsh wlan show interfaces` for SSID + Signal → `Format-List`. Ethernet-only link detected on blank SSID. |
+| `dnsbench` | `Get-HawkDnsBench` | `Measure-Command { Resolve-DnsName google.com }` → resolver latency in ms (2 decimals). |
+| `linkspeed` | `Get-HawkLinkSpeed` | `Get-NetAdapter` where Status=Up → Name, InterfaceDescription, LinkSpeed. |
+| `shares` | `Get-HawkShares` | `Get-SmbShare` excluding hidden admin shares (`*$`) → Name, Path, Description. Warns when SMB cmdlets are unavailable. |
+| `hostscheck` | `Get-HawkHostsCheck` | Reads `%windir%\System32\drivers\etc\hosts`, surfaces every non-comment line as an active map override. |
+| `dnscache` | `Get-HawkDnsCache` | `Get-DnsClientCache` → first 20 entries: Name, EntryStatus, Data. Reads the OS resolver cache live. |
 
-### Display helpers (module-internal)
+---
 
-These three helpers are shared by all workflow functions and are not exported:
-- `Write-OpsWorkflowBanner` — Renders the decorated box banner with title, timestamp, and hostname
-- `Write-OpsWorkflowSection` — Section header with dynamic rule-line padding, configurable foreground color
-- `Write-OpsRecommendations` — Iterates recommendation tuples (icon, color, message) and renders each with `Write-Host`
+## 9. 🔍 SECURITY SCAN
 
-### Workflow aliases
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `shield` | `Get-HawkShield` | `Get-MpComputerStatus` → RealTimeProtection + DefinitionsUpdated (signature freshness). Red-flag message when Defender cmdlets are absent. |
+| `admins` | `Get-HawkAdmins` | `Get-LocalGroupMember -Group Administrators` → Name, PrincipalSource, ObjectClass. |
+| `apps` | `Get-HawkApps` | HKLM machine-wide uninstall registry (`...\CurrentVersion\Uninstall\*`) with `DisplayName` → first 30 apps: DisplayName, DisplayVersion. |
+| `patchhistory` | `Get-HawkPatchHistory` | `Get-HotFix` sorted by InstalledOn desc → latest 15 KB updates. |
+| `driveraudit` | `Get-HawkDriverAudit` | `Win32_PnPSignedDriver` where DeviceStatus ≠ OK → DeviceName, DeviceStatus, Manufacturer. |
+| `certs` | `Get-HawkCerts` | `Cert:\LocalMachine\My` → Subject + NotAfter expiry for personal certificates. |
 
-| Alias | Full command | What it aggregates | Data sources |
-|-------|-------------|-------------------|-------------|
-| `dailyops` | `Invoke-OpsDailyOps` | Health + uptime + disk + network + DNS + events + temp + power | 8 sub-functions, scored 0–100, C: <10% free → 🔴 CRITICAL + score penalty |
-| `sysreview` | `Invoke-OpsSystemReview` | Spec + health + uptime + RAM + disk + resource map + ports + temp + hypervisor + power + license | 11 sub-functions, sections: HARDWARE / PERFORMANCE / RESOURCE CONSUMERS / LISTENING PORTS / STORAGE / LICENSE |
-| `secaudit` | `Invoke-OpsSecurityAudit` | Firewall + boot + scheduled tasks + ghost ports + suspicious procs + events + admin + shield | 8 sub-functions, sections: DEFENDER / FIREWALL / STARTUP & TASKS / ADMINISTRATORS / ANOMALIES |
-| `netreview` | `Invoke-OpsNetworkDiagnostics` | NetCheck + Wi-Fi + DNS bench + DNS cache + link speed + shares + hosts + established + triage | 9 sub-functions, sections: CONNECTIVITY / DNS RESOLVERS / INTERFACES / SHARES / HOSTS FILE |
-| `threat` | `Invoke-OpsThreatHunt` | Suspicious procs + ghost ports + events + bad files + locked files + sparse files + compressed dirs + firewall | 8 sub-functions, categorizes findings into THREATS / WARNINGS / INFO buckets |
-| `change` | `Invoke-OpsChangeAudit` | Recent files + patches + drivers + dumps + boot + certs | 6 sub-functions, sections: RECENT FILES / UPDATES / DRIVERS / CRASH DUMPS / STARTUP / CERTIFICATES |
-| `compliance` | `Invoke-OpsComplianceCheck` | Admin count + Defender + firewall gaps + non-MS tasks + boot entries + patches + license + hypervisor + ports | 9 CIS-inspired checks, returns pass/fail tally with percentage score |
+---
 
-### Scoring system
+## 10. 💾 STORAGE FORENSICS
 
-All scored workflows (`dailyops`, `sysreview`, `secaudit`, `netdiag`, `change`) share this pattern:
-- Start at **100**, deduct for each finding below thresholds
-- Floor at **0** (`[Math]::Max(0, $score)`)
-- Thresholds: **≥80 🟢** (good), **50–79 🟡** (attention needed), **<50 🔴** (critical)
-- `compliance` uses a separate pass-rate percentage instead
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `clipcheck` | `Get-HawkClipCheck` | `Get-Clipboard -Raw` → buffer length + first-40-char preview; "buffer is clear" when empty. |
+| `recent` | `Get-HawkRecent` | Recurses Documents + Downloads for files written in the last 24h → Name, LastWriteTime. |
+| `drivehealth` | `Get-HawkDriveHealth` | Direct CIM query `MSFT_PhysicalDisk` (Storage namespace) → DeviceId, FriendlyName, OperationalStatus, HealthStatus (SMART-class health). |
+| `dumps` | `Get-HawkDumps` | Lists `%windir%\Minidump` contents (Name, Length, LastWriteTime) or reports none exist. |
+| `badfiles` | `Get-HawkBadFiles` | Zero-byte files at the top level of Documents — possible corruption artifacts. |
+| `links` | `Get-HawkLinks` | Reparse points (symlinks/junctions) at the profile root incl. hidden items → Name, Target. |
+| `locked` | `Get-HawkLocked` | Recursive Documents walk with `-ErrorVariable` capturing access-denied failures → restricted entry list. |
+| `sparse` | `Get-HawkSparse` | Files carrying the NTFS SparseFile attribute, top level of Documents. |
+| `compress` | `Get-HawkCompress` | Files carrying the NTFS Compressed attribute, top level of Documents. |
 
-### Return value
+---
 
-Every workflow returns `[PSCustomObject]` for programmatic use. Common properties:
+## 11. 🧰 UTILITIES
+
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `locate` | `Get-HawkAppLocation` | `Get-Command <name>` → Name, CommandType, Source — traces where an app resolves from. Usage: `locate git`. |
+| `open` | `Invoke-ExplorerHere` | `Invoke-Item .` opens File Explorer at the current directory. |
+
+### Short Verbs & Hub
+
+| Alias | Canonical | Under the Hood |
+|:---|:---|:---|
+| `ask` | `Invoke-HawkShortAsk` | Sends a question or piped data to the local model via `Invoke-HawkAI` (redaction always on). Pipeline branch auto-instructs "Analyze this operational data and answer concisely." `-Instruction` overrides. |
+| `fix` | `Invoke-HawkShortFix` | Sends `$Error[0]` + position message (+ optional `-Context`) through `Invoke-HawkAI -RedactSensitive` with a concrete-fix instruction. |
+| `stat` | `Invoke-HawkShortStat` | One-page operational pulse — delegates to `Get-HawkSysView`: uptime, RAM%, disk, temp footprint, critical services, ping 8.8.8.8, Defender state, AI server. |
+| `mem` | `Invoke-HawkShortMem` | Memory router: text → remember, query → recall, neither → memory map (see §15). |
+| `hub` | `Invoke-HawkCompanion` | One-word hub: `hub brief\|fix\|stat\|ask\|mem [args]`, default `brief`. The `mem` route accepts `-Query/-Tag/-Pinned`. |
+
+---
+
+## 12. 🎯 DISPATCH VERBS
+
+
+Single-entry verbs for grouped queries:
+
+| Verb | Alias | Types |
+|:---|:---|:---|
+| `Get-HawkSystem` | `sysdiag` | `health`, `spec`, `uptime`, `ram`, `battery`, `display`, `disk`, `res`, `port`, `temp`, `fans`, `hyperv`, `power`, `license` |
+| `Get-HawkAudit` | `auditdiag` | `fw`, `boot`, `schedtask`, `ghost`, `sus`, `storm`, `admin`, `shield`, `temp`, `clip`, `defender`, `reg`, `ifeo`, `pathaudit` |
+| `Get-HawkNetwork` | `netview` | `ping`, `wifi`, `dns`, `linkspeed`, `shares`, `hosts`, `dnscache`, `established`, `nettriage`, `portmap` |
+| `Get-HawkEnv` | `envdiag` | `envmap`, `path`, `app` |
+
 ```powershell
-$result = dailyops
-$result.Score            # 0-100 numeric score
-$result.Recommendations  # Array of [icon, color, message] tuples
-$result.Health           # Individual sub-function result objects
+sysdiag -Type disk      # → Get-HawkDiskPressureAudit
+auditdiag -Type fw      # → Get-HawkFirewallAudit
+netview -Type ping      # → Get-HawkNetCheck
+envdiag -Type path      # → Get-HawkPathAudit
 ```
 
 ---
 
-## 11. CONSOLIDATED DISPATCH
+## 13. ⚡ CACHING BEHAVIOR
 
-Four "umbrella" commands organize the most common queries under a single verb:
-
-| Alias | Full name | What it does |
-|-------|-----------|-------------|
-| `sysdiag` | `Get-OpsSystem` | Dispatches to `Get-OpsSpec`, `Get-OpsHealth`, `Get-OpsUptime`, `Get-OpsRamInfo`, `Get-OpsBattery`, `Get-OpsDisplay`, `Get-OpsDiskPressureAudit`, `Get-OpsResourceMap`, `Get-OpsPortMap` via `-Type` parameter |
-| `auditdiag` | `Get-OpsAudit` | Dispatches to `Get-OpsFirewallAudit`, `Get-OpsBootMap`, `Get-OpsScheduledTaskRiskAudit`, `Get-OpsGhostPortAudit`, `Get-OpsSuspiciousProcessAudit`, `Get-OpsEventStormAudit`, `Get-OpsPatchHistory`, `Get-OpsTempCheck`, `Get-OpsClipCheck` via `-Type` |
-| `netview` | `Get-OpsNetwork` | Dispatches to `Get-OpsNetCheck`, `Get-OpsWifi`, `Get-OpsDnsBench`, `Get-OpsLinkSpeed`, `Get-OpsShare`, `Get-OpsHostsCheck`, `Get-OpsDnsCache`, `Get-OpsNetworkTriage` via `-Type` |
-| `envdiag` | `Get-OpsEnv` | Dispatches to `Get-OpsEnvMap`, `Get-OpsPathAudit`, `Get-OpsApp` via `-Type` |
+The only session cache today is the git prompt segment (`$global:HawkPromptGitCache`, 2-second TTL per working directory) so the prompt stays snappy inside large repositories. Audit and map commands query WMI/CIM live on every invocation — no result caching, no `-Force` bypass needed.
 
 ---
 
-## 12. CONFIGURATION
+## 14. 📋 OPERATIONAL WORKFLOWS
+
+
+Each workflow aggregates existing functions, applies scoring (start 100, deduct per finding, floor 0), returns `[PSCustomObject]@{ Score; Recommendations; Health }`.
+
+| Workflow | Alias | Sources | Scoring |
+|:---|:---|:---|:---|
+| `Invoke-HawkDaily` | `hawkdaily` | health, uptime, disk, network, dns, events, temp, power | 8 sub-functions |
+| `Invoke-HawkSystemReview` | `sysreview` | spec, health, uptime, ram, disk, res, port, temp, hyperv, power, license | 11 sub-functions |
+| `Invoke-HawkSecurityAudit` | `secaudit` | fw, boot, schedtask, ghost, sus, storm, admin, shield | 8 sub-functions |
+| `Invoke-HawkNetworkDiagnostics` | `netdiag` | ping, wifi, dns, dnscache, linkspeed, shares, hosts, established, nettriage | 9 sub-functions |
+| `Invoke-HawkThreatHunt` | `threathunt` | sus, ghost, storm, badfiles, locked, sparse, compress, fw | THREATS/WARNINGS/INFO buckets |
+| `Invoke-HawkChangeAudit` | — | recent, patches, drivers, dumps, boot, certs | 6 sub-functions |
+| `Invoke-HawkComplianceCheck` | — | admin, shield, fw gaps, non-MS tasks, boot, patches, license, hyperv, ports | 9 CIS-inspired checks, pass-rate % |
+
+**Thresholds:** ≥80 🟢 | 50–79 🟡 | <50 🔴
+
+```powershell
+hawkdaily | ForEach-Object { $_.Score }
+secaudit | ForEach-Object { $_.Recommendations }
+```
+
+---
+
+## 15. 🧠 SEMANTIC RECALL (MEMORY)
+
+
+Persistent JSONL at `~\Documents\PowerShell\Memory\hawk-memory.jsonl`.
+
+| Alias | Canonical | Description |
+|:---|:---|:---|
+| `remember` | `Add-HawkMemory` | Appends entry: Id (`mem_{yyyyMMdd_HHmmss}_{guid[0:6]}`), Type (note/preference/runbook/session/web/sysops), Tags, Text (auto-redacted), Source, Created (ISO 8601), Confidence (low/medium/high/user), Pinned. Supports `-WhatIf`. |
+| `recall` | `Search-HawkMemory` | Reads JSONL, filters by `-Query` (term match), `-Pinned`, `-First`. Scores by term hits (+2 if pinned), sorts desc. |
+| `memmap` | `Get-HawkMemoryMap` | Lists all with `-Tag`, `-Pinned`, `-First` filters. Sorts by Created desc. |
+| `readmem` | `Read-HawkMemory` | Returns all entries as `[HawkMemoryEntry]` objects. |
+
+**Auto-redaction:** `Text` field passed through `Protect-HawkSensitiveText` before write.
+
+```powershell
+remember "Prefer Q4_K_M for 1.7B models" -Tag preference -Pinned
+recall "quantization" -First 5
+memmap -Pinned
+```
+
+---
+
+## 16. 🧭 GUIDED ONBOARDING
+
+
+```powershell
+onboard          # Interactive planner (prints steps, supports -WhatIf)
+onboard -Apply   # Execute all 6 steps
+```
+
+| Step | Command | Action |
+|:---|:---|:---|
+| 1 | `Invoke-HawkOnboardStep1` | Set project root → saves to config + `$global:HawkProjectRoot` |
+| 2 | `Invoke-HawkOnboardStep2` | Set memory root → creates `Memory/` dir, saves to config |
+| 3 | `Invoke-HawkOnboardStep3` | Verify llama.cpp endpoint (`http://127.0.0.1:8081/v1/models`) |
+| 4 | `Invoke-HawkOnboardStep4` | Select local GGUF model (filesystem scan) |
+| 5 | `Invoke-HawkOnboardStep5` | Generate Modelfile from template + selected model |
+| 6 | `Invoke-HawkOnboardStep6` | Run `llama create powershellops -f <modelfile>` |
+
+Config persisted to `~\Documents\PowerShell\hawk-settings.json`.
+
+---
+
+## 17. 🔍 QUALITY & INJECTION SCORING
+
+
+| Command | Description |
+|:---|:---|
+| `Get-HawkSourceQualityScore` | Heuristic 0–100: base 50, +20 if content >200 chars, +15 if >800 chars, +15 if `.gov`/`.edu`/`.org`. Cap 100. |
+| `Test-HawkPromptInjection` | Regex detection: `ignore (previous|above|all) instructions`, `you are now`, `system prompt`, `DAN.*mode`. Returns `$true`/`$false`. |
+
+**Integrated into `ggl -AI`:** Scores each scraped page, filters injection positives, only synthesizes from clean pages ≥50.
+
+---
+
+## 18. ⚙️ CONFIGURATION
 
 ```powershell
 # Change project root at init
-Initialize-OpsProfile -ProjectRoot 'D:\Work' -ShowDashboard
+Initialize-HawkProfile -ProjectRoot 'D:\Work' -ShowDashboard
 
-# Skip prereq module import on init
-Initialize-OpsProfile -SkipModules
+# Skip prereq module import
+Initialize-HawkProfile -SkipModules
 
 # Suppress dashboard
-$env:Ops_NO_DASH = '1'
+$env:HAWK_NO_DASH = '1'
 ```
 
 | Variable | Default | Purpose |
-|----------|---------|---------|
-| `$env:Ops_NO_DASH` | unset | Set to `1` to suppress dashboard |
-| `$env:CI` | unset | Automatically suppresses dashboard |
-| `$global:OpsProjectRoot` | derived checkout/profile root or `$Ops_PROJECT_ROOT` | Project root for `proj`/`projset` |
-| `Config/ops-settings.json` | optional user settings file | Persists project root, memory root, Ollama endpoint, selected AI model, and generated model file path |
-| `$script:OpsSensitiveNamePattern` | regex | Pattern for `Protect-OpsSensitiveText` redaction |
+|:---|:---|:---|
+| `$env:HAWK_NO_DASH` | unset | Set `1` to suppress dashboard |
+| `$env:CI` | unset | Auto-suppresses dashboard |
+| `$global:HawkProjectRoot` | derived checkout/profile root | Project root for `proj` |
+| `~\Documents\PowerShell\hawk.config.json` | optional | Persists projectRoot, hfHome, llamaPort, modelPath |
+| `~\Documents\PowerShell\hawk-settings.json` | optional | Persists onboarding: project root, memory root, llama endpoint, selected model, modelfile path |
+| `$script:HawkSensitiveNamePattern` | regex | Pattern for `secretredact` |
 
 ---
 
-## 13. PIPELINE TIPS
+## 19. 📊 PIPELINE TIPS
 
 ```powershell
-# Chain commands — all Get-Ops* output objects work with Where-Object, Format-Table, Export-Csv
-port | Format-Table -AutoSize
-disk | Where-Object { $_.FreePercent -lt '10%' }
-boot | Export-Csv startup.csv
+# Chain commands — all Get-Hawk* output objects work with Where-Object, Format-Table, Export-Csv
+portmap | Format-Table -AutoSize
+diskaudit | Where-Object { $_.FreePercent -lt 10 }
+bootmap | Export-Csv startup.csv
 
 # Pipe to AI
-res | ai "Which process is using the most RAM?"
-fw | ai "Any gaps in firewall rules?"
+resmap | ai "Which process is using the most RAM?"
+fwaudit | ai "Any gaps in firewall rules?"
 
 # Run a full daily ops scan
-dailyops
+hawkdaily
 
 # Run a security audit and check the score
 secaudit | ForEach-Object { $_.Score }
 
 # Export compliance check results
-compliance | Export-Csv compliance-report.csv
+Invoke-HawkComplianceCheck | Export-Csv compliance-report.csv
 
 # Redact before sending to AI
 envmap -IncludeSensitive | secretredact | ai "Summarize the environment"
@@ -345,60 +332,128 @@ envmap -IncludeSensitive | secretredact | ai "Summarize the environment"
 # Search the web + synthesize
 ggl "windows firewall hardening" -AI
 
-# Save AI output to memory
-res | ai "What is using the most memory?" -Remember
+# One-word hub shortcuts
+hub stat
+hub ask "best way to trim TEMP folders?"
 ```
 
 ---
 
-## 14. PERFORMANCE
+## 20. 📈 PERFORMANCE
 
 | Operation | Time |
-|-----------|------|
-| Module import (bare) | ~137ms |
-| Init with prerequisites check | ~336ms |
-| Full profile load | ~2.3s |
+|:---|:---|
+| Module import (bare) | ~150ms |
+| Init with prerequisites check | ~400ms |
+| Full profile load | ~2.5s |
 | Dashboard render | ~50ms |
 | First audit run | ~500ms–2s (depends on WMI queries) |
-| AI query (Ollama, first) | ~5–20s (model load) |
-| AI query (Ollama, cached) | ~500ms–5s |
+| AI query (llama.cpp, first) | ~5–20s (model load) |
+| AI query (llama.cpp, cached) | ~500ms–5s |
 | Daily ops scan (cached) | ~1–3s |
 | Compliance check (cached) | ~2–5s |
 
-The 2.3s profile load is mainly from `Import-OpsPrerequisite` checking PSGallery. Second runs are faster due to caching. AI first-query latency depends on whether the selected Ollama model is already loaded.
+The 2.5s profile load is mainly from `Import-HawkPrerequisites` checking PSGallery. Second runs are faster due to caching. AI first-query latency depends on whether the selected llama.cpp model is already loaded.
 
 ---
 
-## 15. COMPLETE ALIAS INDEX
+## 21. 📋 COMPLETE ALIAS INDEX
 
-> Loaded shell aliases are now prefixed with `Ops-` to avoid shadowing standard commands. The labels below map to the underlying Ops command families.
+Every daily-driver alias registered by the profile, generated from the live alias map.
 
-### System
-`health` · `spec` · `uptime` · `ram` · `battery` · `display` · `hyperv` · `powerplan` · `license` · `disk` · `temp` · `clip` · `smarts` · `res` · `port`
+| Alias | Runs |
+|---|---|
+| `admins` | `Get-HawkAdmins` |
+| `ai` | `Invoke-HawkAI` |
+| `aidoctor` | `Get-HawkLlamaStatus` |
+| `apps` | `Get-HawkApps` |
+| `ask` | `Invoke-HawkShortAsk` |
+| `auditdiag` | `Get-HawkAudit` |
+| `badfiles` | `Get-HawkBadFiles` |
+| `battery` | `Get-HawkBattery` |
+| `bootmap` | `Get-HawkBootMap` |
+| `certs` | `Get-HawkCerts` |
+| `clipcheck` | `Get-HawkClipCheck` |
+| `compress` | `Get-HawkCompress` |
+| `dash` | `Show-HawkDashboard` |
+| `defendermap` | `Get-HawkDefenderAudit` |
+| `diskaudit` | `Get-HawkDiskPressureAudit` |
+| `displays` | `Get-HawkDisplays` |
+| `dnsbench` | `Get-HawkDnsBench` |
+| `dnscache` | `Get-HawkDnsCache` |
+| `drivehealth` | `Get-HawkDriveHealth` |
+| `driveraudit` | `Get-HawkDriverAudit` |
+| `dumps` | `Get-HawkDumps` |
+| `envdiag` | `Get-HawkEnv` |
+| `envmap` | `Get-HawkEnvMap` |
+| `evntaudit` | `Get-HawkEventStormAudit` |
+| `evntmap` | `Get-HawkEventMap` |
+| `fans` | `Get-HawkFans` |
+| `fix` | `Invoke-HawkShortFix` |
+| `fwaudit` | `Get-HawkFirewallAudit` |
+| `fwmap` | `Get-HawkFirewallMap` |
+| `ggl` | `Invoke-HawkSearch` |
+| `ghostaudit` | `Get-HawkGhostPortAudit` |
+| `hawkchat` | `Invoke-HawkChat` |
+| `hawkcheck` | `Test-HawkSetup` |
+| `hawkdaily` | `Invoke-HawkDaily` |
+| `hawkdoctor` | `Get-HawkDoctor` |
+| `hawkhelp` | `Invoke-HawkHelp` |
+| `hawkman` | `Show-HawkManual` |
+| `hawkmodel` | `Get-HawkModel` |
+| `hawkreport` | `New-HawkReport` |
+| `hawkwatch` | `Watch-HawkDashboard` |
+| `hostscheck` | `Get-HawkHostsCheck` |
+| `hub` | `Invoke-HawkCompanion` |
+| `hypervisor` | `Get-HawkHypervisor` |
+| `ifeoaudit` | `Get-HawkIfeoAudit` |
+| `license` | `Get-HawkLicense` |
+| `links` | `Get-HawkLinks` |
+| `linkspeed` | `Get-HawkLinkSpeed` |
+| `llamadoctor` | `Invoke-HawkLlamaDoctor` |
+| `llamastart` | `Start-HawkLlamaServer` |
+| `llamastop` | `Stop-HawkLlamaServer` |
+| `locate` | `Get-HawkAppLocation` |
+| `locked` | `Get-HawkLocked` |
+| `mem` | `Invoke-HawkShortMem` |
+| `memmap` | `Get-HawkMemoryMap` |
+| `netdiag` | `Invoke-HawkNetworkDiagnostics` |
+| `nettriage` | `Get-HawkNetworkTriage` |
+| `netview` | `Get-HawkNetwork` |
+| `onboard` | `Invoke-HawkOnboard` |
+| `open` | `Invoke-ExplorerHere` |
+| `patchhistory` | `Get-HawkPatchHistory` |
+| `pathaudit` | `Get-HawkPathAudit` |
+| `portmap` | `Get-HawkPortMap` |
+| `power` | `Get-HawkPower` |
+| `proj` | `Invoke-HawkProject` |
+| `projaudit` | `Get-HawkProjectAudit` |
+| `raminfo` | `Get-HawkRamInfo` |
+| `readmem` | `Read-HawkMemory` |
+| `recall` | `Search-HawkMemory` |
+| `recent` | `Get-HawkRecent` |
+| `regaudit` | `Get-HawkRegAudit` |
+| `regsnap` | `Save-HawkRegistrySnapshot` |
+| `reload` | `Update-HawkProfile` |
+| `remember` | `Add-HawkMemory` |
+| `resmap` | `Get-HawkResourceMap` |
+| `secaudit` | `Invoke-HawkSecurityAudit` |
+| `secretredact` | `Protect-HawkSensitiveText` |
+| `shares` | `Get-HawkShares` |
+| `shield` | `Get-HawkShield` |
+| `sparse` | `Get-HawkSparse` |
+| `specs` | `Get-HawkSpecs` |
+| `stat` | `Invoke-HawkShortStat` |
+| `susaudit` | `Get-HawkSuspiciousProcessAudit` |
+| `sysdiag` | `Get-HawkSystem` |
+| `sysreview` | `Invoke-HawkSystemReview` |
+| `sysview` | `Get-HawkSysView` |
+| `taskaudit` | `Get-HawkScheduledTaskRiskAudit` |
+| `temps` | `Get-HawkThermals` |
+| `threathunt` | `Invoke-HawkThreatHunt` |
+| `uptime` | `Get-HawkUptime` |
+| `wifi` | `Get-HawkWifi` |
 
-### Security
-`admin` · `shield` · `fw` · `boot` · `schedtask` · `ghost` · `sus` · `storm` · `cert` · `dump` · `badfile` · `link` · `lock` · `sparse` · `compress` · `patch` · `driver` · `recent` · `secretredact`
 
-### Network
-`ping` · `wifi` · `established` · `dns` · `dnscache` · `linkspeed` · `smb` · `hosts` · `nettriage`
+**Developed for Professionals by [Shahriar Haque Abir](https://github.com/shahriarhaqueabir)**
 
-### Environment
-`envmap` · `path` · `app` · `where`
-
-### AI
-`ai` · `ggl` · `aistatus` · `intent` · `aiprofile` · `quality` · `injecttest`
-
-### Memory
-`remember` · `recall` · `memmap` · `readmem` · `memfile`
-
-### Reports
-`Opsreport` · `reportpath`
-
-### Workflows (new in v11.3)
-`dailyops` · `sysreview` · `secaudit` · `netdiag` · `threat` · `change` · `compliance`
-
-### Module & Shell
-`dash` · `watch` · `Opsman` · `reload` · `init` · `proj` · `projset` · `explorer` · `cached`
-
-### Dispatch
-`sys` · `audit` · `net` · `env`

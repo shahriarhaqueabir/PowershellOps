@@ -1,77 +1,51 @@
-# .gitignore — PowershellOps
+# Hawkward Hybrid — .gitignore
 
-# ─────────────────────────────────────────────
-# AGENT INTERNAL STATE (Private reasoning/plans)
-# ─────────────────────────────────────────────
-.memory/
-plans/
-docs/superpowers/
+# Build artifacts
+*.log
+hawk-install.log
+hawk-tests.log
 
-# ─────────────────────────────────────────────
-# LOCAL DATA & USER CONFIG
-# ─────────────────────────────────────────────
-Memory/
+# Staging / temp
+hawk-stage-*/
+*.tmp
+*.temp
+
+# User config (generated on install)
+hawk.config.json
+
+# Reports (generated at runtime)
 Reports/
-Config/
-testResults.xml
-ops-test-results.xml
-.Ops_first_run
 
-# ─────────────────────────────────────────────
-# VECTORS & MODELS (Stored locally)
-# ─────────────────────────────────────────────
-# Keep modelfiles/ folder but ignore specific local bin/weights if any
-# modelfiles/
+# llama.cpp runtime
+llama-app/
+llama-server.exe
+llama.exe
 
-# ─────────────────────────────────────────────
-# IDE & OS METADATA
-# ─────────────────────────────────────────────
-.idea/
+# Model files (downloaded on install)
+Models/
+*.gguf
+
+# IDE / editor
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
+
+# OS
 Thumbs.db
 Desktop.ini
 .DS_Store
 
-# ─────────────────────────────────────────────
-# POWERSHELL / BUILD ARTIFACTS
-# ─────────────────────────────────────────────
-Help/
-Scripts/dev/
-BackupOriginal/
-__final_check.ps1
-*.backup.ps1
-*.bak
-*.old
-*.tmp
-*.temp
-*.log
+# PowerShell module cache
+__pycache__/
+*.pyc
 
-# ─────────────────────────────────────────────
-# MODULE DEPENDENCIES
-# Use Install-OpsPrerequisite to populate Modules/
-# ─────────────────────────────────────────────
-Modules/*/
-!Modules/PowershellOps/
+# Test artifacts
+TestResults/
+*.trx
 
-# ─────────────────────────────────────────────
-# SECRETS (STRICT PROHIBITION)
-# ─────────────────────────────────────────────
-*.key
-*.pem
-*.pfx
-*.crt
-*.p12
-.env
-.env.*
-secrets.*
-credentials.*
-
-# ─────────────────────────────────────────────
-# WHITELIST (Explicitly tracked assets)
-# ─────────────────────────────────────────────
-!Modules/PowershellOps/Patterns/
-!docs/*.md
-.github/AGENTS.md
+# Local agent context / caches (not part of the product)
+.context/
+.opencode/
+build/
