@@ -2,10 +2,10 @@
     RootModule        = 'HawkwardHybrid.psm1'
     ModuleVersion     = '12.0.0'
     GUID              = '9f0235b3-6a75-4f62-9bbd-3fc479a9b2bc'
-    Author            = 'shahr'
+    Author            = 'Shahriar Haque Abir'
     CompanyName       = 'PowershellOps'
-    Copyright         = '(c) 2026 shahr. All rights reserved.'
-    Description       = 'PowershellOps Hawk profile: local PowerShell ops, diagnostics, AI, and security audit toolkit.'
+    Copyright         = '(c) 2026 Shahriar Haque Abir. All rights reserved.'
+    Description       = 'PowershellOps - local AI companion and operational intelligence toolkit for Windows. 126 functions, 90 one-word aliases: system diagnostics, security auditing, scored workflows, and a llama.cpp-powered AI hub. Private by design, zero cloud.'
     PowerShellVersion = '7.0'
     FunctionsToExport = @(
         'Get-HawkConfig'
@@ -168,9 +168,11 @@
     )
     PrivateData       = @{
         PSData = @{
-            Tags       = @('PowerShell', 'Diagnostics', 'Security', 'AI', 'Llama', 'Windows', 'Automation', 'System-Information', 'LocalLLM')
-            ProjectUri = 'https://github.com/shahriarhaqueabir/PowershellOps'
-            IconUri    = 'https://raw.githubusercontent.com/shahriarhaqueabir/PowershellOps/main/icon.png'
+            Tags         = @('PowerShell', 'Diagnostics', 'Security', 'AI', 'Llama', 'Windows', 'Automation', 'System-Information', 'LocalLLM')
+            LicenseUri   = 'https://github.com/shahriarhaqueabir/PowershellOps/blob/main/LICENSE'
+            ProjectUri   = 'https://github.com/shahriarhaqueabir/PowershellOps'
+            IconUri      = 'https://raw.githubusercontent.com/shahriarhaqueabir/PowershellOps/main/icon.png'
+            ReleaseNotes = 'v12.0.0 Hawkward Hybrid: staged installer, 126 functions / 90 aliases across 11 dashboard suites, local llama.cpp AI hub (ask/fix/stat/mem), 7 scored workflows, hermetic 27-test suite, full docs overhaul.'
         }
     }
 }
